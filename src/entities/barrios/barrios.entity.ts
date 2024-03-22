@@ -7,8 +7,8 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { Localidad } from './localidades.entity';
-import { Zona } from './zonas.entity';
+import { Localidad } from '../localidades/localidades.entity';
+import { Zona } from '../zonas/zonas.entity';
 
 @Entity('barrios')
 export class Barrio extends BaseEntity {

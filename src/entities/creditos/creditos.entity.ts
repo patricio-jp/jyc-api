@@ -6,8 +6,8 @@ import {
   OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { Venta } from './operaciones.entity';
-import { Cuota } from './cuotas.entity';
+import { Venta } from '../operaciones/operaciones.entity';
+import { Cuota } from '../cuotas/cuotas.entity';
 
 export enum EstadoCredito {
   Pendiente,

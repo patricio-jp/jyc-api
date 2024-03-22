@@ -9,9 +9,9 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { Credito } from './creditos.entity';
-import { Cliente } from './clientes.entity';
-import { Producto } from './productos.entity';
+import { Credito } from '../creditos/creditos.entity';
+import { Cliente } from '../clientes/clientes.entity';
+import { Producto } from '../productos/productos.entity';
 
 export enum CondicionOperacion {
   CONTADO = 'CONTADO',
@@ -36,6 +36,9 @@ export abstract class Operacion extends BaseEntity {
 
   @Column({ nullable: true })
   comprobante?: string;
+
+  @Column({ nullable: true })
+  comprobanteUrl?: string;
 
   @Column({
     type: 'decimal',
@@ -129,14 +132,6 @@ export class DetalleVenta extends BaseEntity {
 
   @Column('int')
   cantidad: number;
-
-  @Column({
-    type: 'decimal',
-    precision: 14,
-    scale: 2,
-    default: 0,
-  })
-  costoUnitario: number;
 
   @Column({
     type: 'decimal',

@@ -5,8 +5,8 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { Cliente } from './clientes.entity';
-import { Usuario } from './usuarios.entity';
+import { Cliente } from '../clientes/clientes.entity';
+import { Usuario } from '../usuarios/usuarios.entity';
 
 export abstract class Telefono extends BaseEntity {
   @PrimaryGeneratedColumn()

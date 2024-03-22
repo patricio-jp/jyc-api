@@ -1,5 +1,5 @@
 import { CLIENTES_REPOSITORY, DATA_SOURCE } from 'src/constants/constants';
-import { Cliente } from 'src/entities/clientes.entity';
+import { Cliente } from 'src/entities/clientes/clientes.entity';
 import { DataSource } from 'typeorm';
 
 export const clientesProviders = [

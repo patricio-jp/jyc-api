@@ -7,7 +7,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { Producto } from './productos.entity';
+import { Producto } from '../productos/productos.entity';
 
 export abstract class Historico {
   @PrimaryGeneratedColumn()

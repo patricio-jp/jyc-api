@@ -9,9 +9,9 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { Domicilio, DomicilioUsuario } from './domicilios.entity';
-import { Telefono, TelefonoUsuario } from './telefonos.entity';
-import { Cliente } from './clientes.entity';
+import { Domicilio, DomicilioUsuario } from '../domicilios/domicilios.entity';
+import { Telefono, TelefonoUsuario } from '../telefonos/telefonos.entity';
+import { Cliente } from '../clientes/clientes.entity';
 
 export enum Rol {
   Vendedor,

@@ -1,9 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { CreateClienteDto } from './dto/create-cliente.dto';
-import { UpdateClienteDto } from './dto/update-cliente.dto';
+import {
+  CreateClienteDTO,
+  UpdateClienteDTO,
+} from 'src/entities/clientes/clientes.dto';
 import { CLIENTES_REPOSITORY } from 'src/constants/constants';
 import { Repository } from 'typeorm';
-import { Cliente } from 'src/entities/clientes.entity';
+import { Cliente } from 'src/entities/clientes/clientes.entity';
 
 @Injectable()
 export class ClientesService {
@@ -12,7 +14,7 @@ export class ClientesService {
     private clientesRepository: Repository<Cliente>,
   ) {}
 
-  create(createClienteDto: CreateClienteDto) {
+  create(createClienteDto: CreateClienteDTO) {
     return 'This action adds a new cliente';
   }
 
@@ -24,7 +26,7 @@ export class ClientesService {
     return `This action returns a #${id} cliente`;
   }
 
-  update(id: number, updateClienteDto: UpdateClienteDto) {
+  update(id: number, updateClienteDto: UpdateClienteDTO) {
     return `This action updates a #${id} cliente`;
   }
 

@@ -5,7 +5,7 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { Credito } from './creditos.entity';
+import { Credito } from '../creditos/creditos.entity';
 
 export enum EstadoCuota {
   aVencer,

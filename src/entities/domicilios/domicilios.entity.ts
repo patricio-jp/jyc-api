@@ -7,9 +7,9 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { Barrio } from './barrios.entity';
-import { Cliente } from './clientes.entity';
-import { Usuario } from './usuarios.entity';
+import { Barrio } from '../barrios/barrios.entity';
+import { Cliente } from '../clientes/clientes.entity';
+import { Usuario } from '../usuarios/usuarios.entity';
 
 export abstract class Domicilio extends BaseEntity {
   @PrimaryGeneratedColumn()

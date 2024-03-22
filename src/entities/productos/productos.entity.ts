@@ -9,8 +9,8 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { Costo, Precio } from './precios.entity';
-import { DetalleCompra, DetalleVenta } from './operaciones.entity';
+import { Costo, Precio } from '../precios/precios.entity';
+import { DetalleCompra, DetalleVenta } from '../operaciones/operaciones.entity';
 
 @Entity('productos')
 export class Producto extends BaseEntity {

@@ -7,20 +7,20 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { Localidad } from './localidades.entity';
+import { Barrio } from '../barrios/barrios.entity';
 
-@Entity('departamentos')
-export class Departamento extends BaseEntity {
+@Entity('zonas')
+export class Zona extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
   @Column()
   nombre: string;
 
-  @OneToMany(() => Localidad, (localidad) => localidad.departamento, {
+  @OneToMany(() => Barrio, (barrio) => barrio.zona, {
     cascade: ['insert', 'update'],
   })
-  localidades: Localidad[];
+  barrios: Barrio[];
 
   @CreateDateColumn()
   createdAt: Date;

@@ -10,10 +10,10 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { Domicilio, DomicilioCliente } from './domicilios.entity';
-import { TelefonoCliente, Telefono } from './telefonos.entity';
-import { Usuario } from './usuarios.entity';
-import { Venta } from './operaciones.entity';
+import { Domicilio, DomicilioCliente } from '../domicilios/domicilios.entity';
+import { TelefonoCliente, Telefono } from '../telefonos/telefonos.entity';
+import { Usuario } from '../usuarios/usuarios.entity';
+import { Venta } from '../operaciones/operaciones.entity';
 
 export enum EstadoCliente {
   AConfirmar, // Nuevo cliente
@@ -22,6 +22,11 @@ export enum EstadoCliente {
   ConDeuda, // Debe 1 o 2 cuotas de un crédito
   Incobrable, // Debe más de 2-3 cuotas de un crédito
 }
+
+/** TO-DO
+ * Agregar campo para guardar foto de DNI
+ * Agregar campo para guardar foto boleta de servicio
+ */
 
 @Entity('clientes')
 export class Cliente extends BaseEntity {
