@@ -7,6 +7,7 @@ import {
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
+  RelationId,
   UpdateDateColumn,
 } from 'typeorm';
 import { Credito } from '../creditos/creditos.entity';
@@ -104,6 +105,9 @@ export class Venta extends Operacion {
   })
   cliente: Cliente;
 
+  @RelationId((venta: Venta) => venta.cliente)
+  id_cliente: number;
+
   @OneToMany(() => Credito, (credito) => credito.venta, {
     eager: true,
     cascade: true,
@@ -125,10 +129,16 @@ export class DetalleVenta extends BaseEntity {
   @ManyToOne(() => Venta, (venta) => venta.id)
   venta: Venta;
 
+  @RelationId((detalle: DetalleVenta) => detalle.venta)
+  id_venta: number;
+
   @ManyToOne(() => Producto, (producto) => producto.id, {
     eager: true,
   })
   producto: Producto;
+
+  @RelationId((detalle: DetalleVenta) => detalle.producto)
+  id_producto: number;
 
   @Column('int')
   cantidad: number;
@@ -165,8 +175,14 @@ export class DetalleCompra extends BaseEntity {
   @ManyToOne(() => Compra, (compra) => compra.id)
   compra: Compra;
 
+  @RelationId((detalle: DetalleCompra) => detalle.compra)
+  id_compra: number;
+
   @ManyToOne(() => Producto, (producto) => producto.id)
   producto: Producto;
+
+  @RelationId((detalle: DetalleCompra) => detalle.producto)
+  id_producto: number;
 
   @Column('int')
   cantidad: number;

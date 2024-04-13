@@ -4,6 +4,7 @@ import {
   Entity,
   ManyToOne,
   PrimaryGeneratedColumn,
+  RelationId,
 } from 'typeorm';
 import { Credito } from '../creditos/creditos.entity';
 
@@ -20,6 +21,9 @@ export class Cuota extends BaseEntity {
 
   @ManyToOne(() => Credito, (credito) => credito.cuotas)
   credito: Credito;
+
+  @RelationId((cuota: Cuota) => cuota.credito)
+  id_credito: number;
 
   @Column()
   cuotaNro: number;
@@ -39,7 +43,7 @@ export class Cuota extends BaseEntity {
     type: 'date',
     nullable: true,
   })
-  fechaPago: Date;
+  fechaPago: Date | null;
 
   @Column({
     type: 'decimal',

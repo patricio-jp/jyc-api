@@ -5,6 +5,7 @@ import {
   Entity,
   ManyToOne,
   PrimaryGeneratedColumn,
+  RelationId,
   UpdateDateColumn,
 } from 'typeorm';
 import { Producto } from '../productos/productos.entity';
@@ -44,10 +45,16 @@ export abstract class Historico {
 export class Precio extends Historico {
   @ManyToOne(() => Producto, (producto) => producto.precios)
   producto: Producto;
+
+  @RelationId((precio: Precio) => precio.producto)
+  id_producto: number;
 }
 
 @Entity('costos')
 export class Costo extends Historico {
   @ManyToOne(() => Producto, (producto) => producto.costos)
   producto: Producto;
+
+  @RelationId((costo: Costo) => costo.producto)
+  id_producto: number;
 }

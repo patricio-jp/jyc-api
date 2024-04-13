@@ -1,10 +1,14 @@
 import {
   BaseEntity,
   Column,
+  CreateDateColumn,
+  DeleteDateColumn,
   Entity,
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
+  RelationId,
+  UpdateDateColumn,
 } from 'typeorm';
 import { Venta } from '../operaciones/operaciones.entity';
 import { Cuota } from '../cuotas/cuotas.entity';
@@ -30,6 +34,9 @@ export class Credito extends BaseEntity {
 
   @ManyToOne(() => Venta, (venta) => venta.id)
   venta: Venta;
+
+  @RelationId((credito: Credito) => credito.venta)
+  id_venta: number;
 
   @Column('date')
   fechaInicio: Date;
@@ -73,6 +80,15 @@ export class Credito extends BaseEntity {
     cascade: true,
   })
   cuotas: Cuota[];
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+
+  @DeleteDateColumn()
+  deletedAt: Date | null;
 
   static async obtenerCredito(id: number) {
     return await this.createQueryBuilder('credito')

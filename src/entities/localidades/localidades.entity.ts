@@ -2,10 +2,12 @@ import {
   BaseEntity,
   Column,
   CreateDateColumn,
+  DeleteDateColumn,
   Entity,
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
+  RelationId,
   UpdateDateColumn,
 } from 'typeorm';
 import { Departamento } from '../departamentos/departamentos.entity';
@@ -24,6 +26,9 @@ export class Localidad extends BaseEntity {
   })
   departamento: Departamento;
 
+  @RelationId((localidad: Localidad) => localidad.departamento)
+  id_departamento: number;
+
   @OneToMany(() => Barrio, (barrio) => barrio.localidad, {
     cascade: ['insert', 'update'],
   })
@@ -34,4 +39,7 @@ export class Localidad extends BaseEntity {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @DeleteDateColumn()
+  deletedAt: Date | null;
 }

@@ -33,14 +33,14 @@ export class CreateClienteDTO {
   @ArrayMinSize(1)
   @ValidateNested()
   @ApiProperty()
-  domicilios?: CreateDomicilioDTO;
+  domicilios?: CreateDomicilioDTO[];
 
   @IsOptional()
   @IsArray()
   @ArrayMinSize(1)
   @ValidateNested()
   @ApiProperty()
-  telefonos?: CreateTelefonoDTO;
+  telefonos?: CreateTelefonoDTO[];
 
   @IsOptional()
   @IsInt()
@@ -55,7 +55,7 @@ export class CreateClienteDTO {
   @IsOptional()
   @IsInt()
   @ApiProperty()
-  id_cobradorAsociado?: Date;
+  id_cobradorAsociado?: number;
 
   @IsOptional()
   @IsDecimal({ decimal_digits: '0,2' })

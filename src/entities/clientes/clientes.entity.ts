@@ -8,6 +8,7 @@ import {
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
+  RelationId,
   UpdateDateColumn,
 } from 'typeorm';
 import { Domicilio, DomicilioCliente } from '../domicilios/domicilios.entity';
@@ -60,6 +61,9 @@ export class Cliente extends BaseEntity {
   @ManyToOne(() => Usuario, (usuario) => usuario.clientesAsociados)
   vendedorAsociado: Usuario;
 
+  @RelationId((cliente: Cliente) => cliente.vendedorAsociado)
+  id_vendedorAsociado: number;
+
   @Column({
     type: 'date',
     nullable: true,
@@ -68,6 +72,9 @@ export class Cliente extends BaseEntity {
 
   @ManyToOne(() => Usuario, (usuario) => usuario.clientesACobrar)
   cobradorAsociado?: Usuario;
+
+  @RelationId((cliente: Cliente) => cliente.cobradorAsociado)
+  id_cobradorAsociado: number;
 
   @Column({
     type: 'decimal',
