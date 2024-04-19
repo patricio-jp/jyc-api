@@ -1,17 +1,17 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { USUARIOS_REPOSITORY } from 'src/constants/constants';
 import { Usuario } from 'src/entities/usuarios/usuarios.entity';
 import {
   CreateUsuarioDTO,
   UpdateUsuarioDTO,
 } from '../entities/usuarios/usuarios.dto';
+import { InjectRepository } from '@nestjs/typeorm';
 
 @Injectable()
 export class UsuariosService {
   constructor(
-    @Inject(USUARIOS_REPOSITORY)
+    @InjectRepository(Usuario)
     private usuariosRepository: Repository<Usuario>,
   ) {}
 

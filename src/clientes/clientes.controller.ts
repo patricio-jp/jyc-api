@@ -38,6 +38,11 @@ export class ClientesController {
   }
 
   @Delete(':id')
+  softRemove(@Param('id') id: string) {
+    return this.clientesService.softRemove(+id);
+  }
+
+  @Delete(':id/force')
   remove(@Param('id') id: string) {
     return this.clientesService.remove(+id);
   }
