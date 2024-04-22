@@ -29,6 +29,11 @@ export class CreateClienteDTO {
   apellido?: string;
 
   @IsOptional()
+  @IsISO8601()
+  @ApiProperty()
+  fechaNacimiento?: Date;
+
+  @IsOptional()
   @IsArray()
   @ArrayMinSize(1)
   @ValidateNested()

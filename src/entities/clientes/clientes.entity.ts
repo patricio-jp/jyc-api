@@ -44,6 +44,12 @@ export class Cliente extends BaseEntity {
   @Index({ unique: true })
   dni: number;
 
+  @Column({
+    type: 'date',
+    nullable: true,
+  })
+  fechaNacimiento?: Date;
+
   @OneToMany(() => DomicilioCliente, (domicilio) => domicilio.cliente, {
     eager: true,
     cascade: true,
