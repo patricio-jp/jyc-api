@@ -3,16 +3,9 @@ import {
   Column,
   CreateDateColumn,
   DeleteDateColumn,
-  Entity,
-  ManyToOne,
-  OneToMany,
   PrimaryGeneratedColumn,
-  RelationId,
   UpdateDateColumn,
 } from 'typeorm';
-import { Credito } from '../creditos/creditos.entity';
-import { Cliente } from '../clientes/clientes.entity';
-import { Producto } from '../productos/productos.entity';
 
 export enum CondicionOperacion {
   CONTADO = 'CONTADO',
@@ -90,108 +83,4 @@ export abstract class Operacion extends BaseEntity {
 
   @DeleteDateColumn()
   deletedAt: Date | null;
-}
-
-@Entity('ventas')
-export class Venta extends Operacion {
-  @Column({
-    type: 'date',
-    nullable: true,
-  })
-  fechaEntrega?: Date;
-
-  @ManyToOne(() => Cliente, (cliente) => cliente.ventas, {
-    eager: true,
-  })
-  cliente: Cliente;
-
-  @RelationId((venta: Venta) => venta.cliente)
-  id_cliente: number;
-
-  @OneToMany(() => Credito, (credito) => credito.venta, {
-    eager: true,
-    cascade: true,
-  })
-  financiacion: Credito[];
-
-  @OneToMany(() => DetalleVenta, (detalle) => detalle.venta, {
-    eager: true,
-    cascade: true,
-  })
-  productos: DetalleVenta[];
-}
-
-@Entity('detalle_ventas')
-export class DetalleVenta extends BaseEntity {
-  @PrimaryGeneratedColumn()
-  id: number;
-
-  @ManyToOne(() => Venta, (venta) => venta.id)
-  venta: Venta;
-
-  @RelationId((detalle: DetalleVenta) => detalle.venta)
-  id_venta: number;
-
-  @ManyToOne(() => Producto, (producto) => producto.id, {
-    eager: true,
-  })
-  producto: Producto;
-
-  @RelationId((detalle: DetalleVenta) => detalle.producto)
-  id_producto: number;
-
-  @Column('int')
-  cantidad: number;
-
-  @Column({
-    type: 'decimal',
-    precision: 14,
-    scale: 2,
-    default: 0,
-  })
-  precioUnitario: number;
-}
-
-@Entity('compras')
-export class Compra extends Operacion {
-  @Column({
-    type: 'date',
-    nullable: true,
-  })
-  fechaRecepcion?: Date;
-
-  @OneToMany(() => DetalleCompra, (detalle) => detalle.compra, {
-    eager: true,
-    cascade: true,
-  })
-  productos: DetalleCompra[];
-}
-
-@Entity('detalle_compras')
-export class DetalleCompra extends BaseEntity {
-  @PrimaryGeneratedColumn()
-  id: number;
-
-  @ManyToOne(() => Compra, (compra) => compra.id)
-  compra: Compra;
-
-  @RelationId((detalle: DetalleCompra) => detalle.compra)
-  id_compra: number;
-
-  @ManyToOne(() => Producto, (producto) => producto.id)
-  producto: Producto;
-
-  @RelationId((detalle: DetalleCompra) => detalle.producto)
-  id_producto: number;
-
-  @Column('int')
-  cantidad: number;
-
-  @Column({
-    type: 'decimal',
-    precision: 14,
-    scale: 2,
-    default: 0,
-  })
-  costoUnitario: number;
 }
