@@ -20,11 +20,11 @@ export class CreateProductoDTO {
   @ArrayMinSize(1)
   @ValidateNested()
   @ApiProperty()
-  costos: CreatePrecioDTO;
+  costos: CreatePrecioDTO[];
 
   @IsArray()
   @ArrayMinSize(1)
   @ValidateNested()
   @ApiProperty()
-  precios: CreatePrecioDTO;
+  precios: CreatePrecioDTO[];
 }

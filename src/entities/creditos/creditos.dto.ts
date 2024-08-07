@@ -4,6 +4,7 @@ import {
   IsEnum,
   IsISO8601,
   IsInt,
+  IsNumber,
   IsOptional,
   Min,
 } from 'class-validator';
@@ -18,6 +19,11 @@ export class CreateCreditoDTO {
   @IsISO8601()
   @ApiProperty()
   fechaInicio: Date;
+
+  @IsOptional()
+  @IsISO8601()
+  @ApiProperty()
+  fechaUltimoPago?: Date;
 
   @IsOptional()
   @IsDecimal({
@@ -46,4 +52,21 @@ export class CreateCreditoDTO {
   @IsEnum(EstadoCredito)
   @ApiProperty()
   estado?: EstadoCredito;
+}
+
+export class CargarPagoDTO {
+  @IsNumber()
+  @Min(0.01)
+  @ApiProperty()
+  monto: number;
+
+  @IsOptional()
+  @IsISO8601()
+  @ApiProperty()
+  fechaPago?: Date;
+
+  @IsOptional()
+  @IsInt()
+  @ApiProperty()
+  nroCuota?: number;
 }

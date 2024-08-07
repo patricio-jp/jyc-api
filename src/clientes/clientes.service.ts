@@ -57,8 +57,8 @@ export class ClientesService {
           domicilios.map(async (domicilio: CreateDomicilioDTO) => {
             const nuevoDom = new DomicilioCliente();
             nuevoDom.direccion = domicilio.direccion;
-            nuevoDom.ubicacion = domicilio.ubicacion;
-            nuevoDom.id_barrio = domicilio.barrio_id;
+            nuevoDom.barrio = domicilio.barrio;
+            nuevoDom.localidad = domicilio.localidad;
 
             return nuevoDom;
           }),
@@ -87,7 +87,7 @@ export class ClientesService {
         nuevoCliente.id_cobradorAsociado = id_cobradorAsociado;
       }
 
-      return await this.usuariosRepository.save(nuevoCliente);
+      return await this.usuariosRepository.insert(nuevoCliente);
     } catch (error) {
       console.error(error);
       return `Error: ${error}`;
@@ -132,37 +132,25 @@ export class ClientesService {
       if (estado) cliente.estado = estado;
 
       if (domicilios) {
-        /* const nuevosDomicilios = await Promise.all(
-          domicilios.map(async (domicilio: CreateDomicilioDTO) => {
-            const nuevoDom = new DomicilioCliente();
-            nuevoDom.direccion = domicilio.direccion;
-            nuevoDom.ubicacion = domicilio.ubicacion;
+        domicilios.map(async (domicilio: CreateDomicilioDTO) => {
+          const nuevoDom = new DomicilioCliente();
+          nuevoDom.direccion = domicilio.direccion;
+          nuevoDom.barrio = domicilio.barrio;
+          nuevoDom.localidad = domicilio.localidad;
 
-            const barrio = await this.barriosRepository.findOneBy({
-              id: domicilio.barrio_id,
-            });
-
-            if (!barrio)
-              throw new NotFoundException('No se encuentra el barrio');
-
-            nuevoDom.barrio = barrio;
-
-            return nuevoDom;
-          }),
-        );
-        nuevoCliente.domicilios = nuevosDomicilios; */
+          cliente.domicilios = [...(cliente.domicilios || []), nuevoDom];
+          return;
+        });
       }
 
       if (telefonos) {
-        /* const nuevosTelefonos = await Promise.all(
-          telefonos.map(async (telefono: CreateTelefonoDTO) => {
-            const nuevoTel = new TelefonoCliente();
-            nuevoTel.telefono = telefono.telefono;
+        telefonos.map(async (telefono: CreateTelefonoDTO) => {
+          const nuevoTel = new TelefonoCliente();
+          nuevoTel.telefono = telefono.telefono;
 
-            return nuevoTel;
-          }),
-        );
-        nuevoCliente.telefonos = nuevosTelefonos; */
+          cliente.telefonos = [...(cliente.telefonos || []), nuevoTel];
+          return;
+        });
       }
 
       if (id_vendedorAsociado) {
@@ -174,7 +162,7 @@ export class ClientesService {
         cliente.id_cobradorAsociado = id_cobradorAsociado;
       }
 
-      return await cliente.save();
+      return await this.clientesRepository.save(cliente);
     } catch (error) {
       return `Error: ${error}`;
     }
@@ -185,7 +173,7 @@ export class ClientesService {
       const cliente = await this.clientesRepository.findOneBy({ id });
       if (!cliente) return 'No existe el cliente con el ID ingresado';
 
-      return await cliente.softRemove();
+      return await this.clientesRepository.softRemove(cliente);
     } catch (error) {
       return `Error: ${error}`;
     }
@@ -196,7 +184,7 @@ export class ClientesService {
       const cliente = await this.clientesRepository.findOneBy({ id });
       if (!cliente) return 'No existe el cliente con el ID ingresado';
 
-      return await cliente.remove();
+      return await this.clientesRepository.remove(cliente);
     } catch (error) {
       return `Error: ${error}`;
     }

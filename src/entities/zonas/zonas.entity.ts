@@ -8,7 +8,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { Barrio } from '../barrios/barrios.entity';
+import { Cliente } from '../clientes/clientes.entity';
 
 @Entity('zonas')
 export class Zona extends BaseEntity {
@@ -18,10 +18,8 @@ export class Zona extends BaseEntity {
   @Column()
   nombre: string;
 
-  @OneToMany(() => Barrio, (barrio) => barrio.zona, {
-    cascade: ['insert', 'update'],
-  })
-  barrios: Barrio[];
+  @OneToMany(() => Cliente, (cliente) => cliente.zona)
+  clientes: Cliente[];
 
   @CreateDateColumn()
   createdAt: Date;

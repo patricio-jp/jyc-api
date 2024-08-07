@@ -9,7 +9,6 @@ import {
   RelationId,
   UpdateDateColumn,
 } from 'typeorm';
-import { Barrio } from '../barrios/barrios.entity';
 import { Cliente } from '../clientes/clientes.entity';
 import { Usuario } from '../usuarios/usuarios.entity';
 
@@ -20,19 +19,11 @@ export abstract class Domicilio extends BaseEntity {
   @Column()
   direccion: string;
 
-  @Column('point', {
-    nullable: true,
-  })
-  ubicacion?: string;
+  @Column()
+  barrio: string;
 
-  @ManyToOne(() => Barrio, (barrio) => barrio.id, {
-    cascade: ['insert', 'update'],
-    eager: true,
-  })
-  barrio: Barrio;
-
-  @RelationId((domicilio: Domicilio) => domicilio.barrio)
-  id_barrio: number;
+  @Column()
+  localidad: string;
 
   @CreateDateColumn()
   createdAt: Date;

@@ -10,8 +10,8 @@ import {
   RelationId,
   UpdateDateColumn,
 } from 'typeorm';
-import { Venta } from '../operaciones/operaciones.entity';
-import { Cuota } from '../cuotas/cuotas.entity';
+import { Venta } from '../operaciones/ventas.entity';
+import { Cuota, EstadoCuota } from '../cuotas/cuotas.entity';
 
 export enum EstadoCredito {
   Pendiente,
@@ -97,16 +97,13 @@ export class Credito extends BaseEntity {
       .leftJoinAndSelect('detalle.producto', 'producto')
       .leftJoinAndSelect('venta.cliente', 'cliente')
       .leftJoinAndSelect('cliente.domicilios', 'domicilios')
-      .leftJoinAndSelect('domicilios.barrio', 'barrio')
-      .leftJoinAndSelect('barrio.localidad', 'localidad')
-      .leftJoinAndSelect('barrio.zona', 'zona')
       .leftJoinAndSelect('cliente.telefonos', 'telefonos')
       .leftJoinAndSelect('credito.cuotas', 'cuotas')
       .where('credito.id = :id', { id })
       .getOne();
   }
 
-  static async obtenerCreditosPorFechaVencimiento(fecha: Date) {
+  static async obtenerCreditosPorVencimiento(fecha: Date) {
     // const fechaVenc = new Date(fecha);
     // fechaVenc.setHours(fechaVenc.getHours() + 3);
 
@@ -116,9 +113,6 @@ export class Credito extends BaseEntity {
       .leftJoinAndSelect('detalle.producto', 'producto')
       .leftJoinAndSelect('venta.cliente', 'cliente')
       .leftJoinAndSelect('cliente.domicilios', 'domicilios')
-      .leftJoinAndSelect('domicilios.barrio', 'barrio')
-      .leftJoinAndSelect('barrio.localidad', 'localidad')
-      .leftJoinAndSelect('barrio.zona', 'zona')
       .leftJoinAndSelect('cliente.telefonos', 'telefonos')
       .leftJoinAndSelect('credito.cuotas', 'cuota')
       .where('cuota.fechaVencimiento = :fechaVenc', { fecha })
@@ -128,5 +122,24 @@ export class Credito extends BaseEntity {
       .getManyAndCount();
 
     return { creditos, count };
+  }
+
+  static async obtenerCreditosCuotasVencidas() {
+    return await this.createQueryBuilder('credito')
+      .leftJoinAndSelect('credito.cuotas', 'cuota')
+      .where('cuota.fechaVencimiento <= :fechaVenc', { fecha: new Date() })
+      .getMany();
+  }
+
+  async anularCredito() {
+    this.estado = EstadoCredito.Anulado;
+    await this.save();
+
+    await Cuota.createQueryBuilder()
+      .update(Cuota)
+      .set({ estado: EstadoCuota.Anulada })
+      .where('creditoId = :creditoId', { creditoId: this.id })
+      .andWhere('estado != :estado', { estado: EstadoCuota.Pagada })
+      .execute();
   }
 }

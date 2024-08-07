@@ -6,13 +6,22 @@ import { ValidationPipe } from '@nestjs/common';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  app.enableCors();
+
   app.useGlobalPipes(new ValidationPipe({ transform: true }));
 
   const config = new DocumentBuilder()
     .setTitle('JyC Amoblamientos')
     .setDescription('API para JyC Amoblamientos')
     .setVersion('1.0')
-    .addTag('jyc')
+    .addTag('Usuarios')
+    .addTag('Clientes')
+    .addTag('Domicilios')
+    .addTag('Zonas')
+    .addTag('Ventas')
+    .addTag('Créditos')
+    .addTag('Productos')
+    .addTag('Inventario')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

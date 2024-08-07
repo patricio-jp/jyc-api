@@ -6,11 +6,15 @@ import {
   Entity,
   Index,
   OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
+  RelationId,
   UpdateDateColumn,
 } from 'typeorm';
 import { Costo, Precio } from '../precios/precios.entity';
-import { DetalleCompra, DetalleVenta } from '../operaciones/operaciones.entity';
+import { DetalleCompra } from '../operaciones/compras.entity';
+import { DetalleVenta } from '../operaciones/ventas.entity';
+import { Inventario } from '../inventario/inventario.entity';
 
 @Entity('productos')
 export class Producto extends BaseEntity {
@@ -48,4 +52,12 @@ export class Producto extends BaseEntity {
 
   @OneToMany(() => DetalleVenta, (detalle) => detalle.producto)
   detallesVenta: DetalleVenta[];
+
+  @OneToOne(() => Inventario, (inventario) => inventario.producto, {
+    cascade: true,
+  })
+  inventario: Inventario;
+
+  @RelationId((producto: Producto) => producto.inventario)
+  id_inventario: number;
 }

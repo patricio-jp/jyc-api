@@ -12,7 +12,9 @@ import {
   CreateUsuarioDTO,
   UpdateUsuarioDTO,
 } from '../entities/usuarios/usuarios.dto';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Usuarios')
 @Controller('usuarios')
 export class UsuariosController {
   constructor(private readonly usuariosService: UsuariosService) {}
@@ -24,7 +26,8 @@ export class UsuariosController {
 
   @Get()
   async findAll() {
-    return this.usuariosService.findAll();
+    const [data, count] = await this.usuariosService.findAll();
+    return { data, count };
   }
 
   @Get(':id')

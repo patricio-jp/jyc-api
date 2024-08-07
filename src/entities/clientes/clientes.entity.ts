@@ -14,7 +14,8 @@ import {
 import { Domicilio, DomicilioCliente } from '../domicilios/domicilios.entity';
 import { TelefonoCliente, Telefono } from '../telefonos/telefonos.entity';
 import { Usuario } from '../usuarios/usuarios.entity';
-import { Venta } from '../operaciones/operaciones.entity';
+import { Venta } from '../operaciones/ventas.entity';
+import { Zona } from '../zonas/zonas.entity';
 
 export enum EstadoCliente {
   AConfirmar, // Nuevo cliente
@@ -81,6 +82,14 @@ export class Cliente extends BaseEntity {
 
   @RelationId((cliente: Cliente) => cliente.cobradorAsociado)
   id_cobradorAsociado: number;
+
+  @ManyToOne(() => Zona, (zona) => zona.clientes, {
+    cascade: ['insert'],
+  })
+  zona: Zona;
+
+  @RelationId((cliente: Cliente) => cliente.zona)
+  id_zona: number;
 
   @Column({
     type: 'decimal',
