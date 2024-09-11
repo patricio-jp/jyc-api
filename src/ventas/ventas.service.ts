@@ -9,7 +9,7 @@ import { DetalleVenta, Venta } from 'src/entities/operaciones/ventas.entity';
 import { Repository } from 'typeorm';
 /* import * as fs from 'fs';
 import * as path from 'path'; */
-import { Inventario } from 'src/entities/inventario/inventario.entity';
+//import { Inventario } from 'src/entities/inventario/inventario.entity';
 import { Producto } from 'src/entities/productos/productos.entity';
 import { Cliente } from 'src/entities/clientes/clientes.entity';
 
@@ -18,8 +18,8 @@ export class VentasService {
   constructor(
     @InjectRepository(Venta)
     private ventasRepository: Repository<Venta>,
-    @InjectRepository(Inventario)
-    private inventarioRepository: Repository<Inventario>,
+    /* @InjectRepository(Inventario)
+    private inventarioRepository: Repository<Inventario>, */
     @InjectRepository(Producto)
     private productosRepository: Repository<Producto>,
     @InjectRepository(Cliente)
@@ -62,7 +62,7 @@ export class VentasService {
         const detalle = new DetalleVenta();
 
         const productoDetalle = await this.productosRepository.findOne({
-          where: { id: prod.producto_id },
+          where: { id: prod.id_producto },
         });
         if (productoDetalle) {
           detalle.producto = productoDetalle;
@@ -71,14 +71,16 @@ export class VentasService {
         detalle.cantidad = prod.cantidad;
         detalle.precioUnitario = prod.precioUnitario;
 
-        const productoEnInventario = await this.inventarioRepository.findOne({
+        /* const productoEnInventario = await this.inventarioRepository.findOne({
           where: { producto: { id: prod.producto_id } },
           relations: { producto: true },
         });
         if (productoEnInventario) {
           productoEnInventario.stock -= prod.cantidad;
           await this.inventarioRepository.save(productoEnInventario);
-        }
+        } */
+        productoDetalle.stock -= prod.cantidad;
+        await this.productosRepository.save(productoDetalle);
 
         nuevoDetalle.push(detalle);
       }
@@ -323,12 +325,12 @@ export class VentasService {
         const productosParaActualizar = [];
         const productosParaAgregar = [];
         const idsNuevosProductos = nuevosProductos.map(
-          (prod) => prod.producto_id,
+          (prod) => prod.id_producto,
         );
 
         // Determinar productos para actualizar o agregar
         nuevosProductos.forEach((nuevoProd) => {
-          if (productosActualesMap.has(nuevoProd.producto_id)) {
+          if (productosActualesMap.has(nuevoProd.id_producto)) {
             productosParaActualizar.push(nuevoProd);
           } else {
             productosParaAgregar.push(nuevoProd);
@@ -342,7 +344,7 @@ export class VentasService {
 
         // Procesar actualizaciones
         productosParaActualizar.forEach(async (prod) => {
-          const prodActual = productosActualesMap.get(prod.producto_id);
+          const prodActual = productosActualesMap.get(prod.id_producto);
           prodActual.cantidad = prod.cantidad;
           prodActual.precioUnitario = prod.precioUnitario;
 
@@ -350,13 +352,19 @@ export class VentasService {
           const dif = prodActual.cantidad - prod.cantidad;
 
           // Actualizar stock
-          const inventario = await this.inventarioRepository.findOne({
+          /* const inventario = await this.inventarioRepository.findOne({
             where: { id: prod },
           });
           if (inventario) {
             inventario.stock += dif;
             await this.inventarioRepository.save(inventario);
-          }
+          } */
+
+          const productoDetalle = await this.productosRepository.findOne({
+            where: { id: prod.id_producto },
+          });
+          productoDetalle.stock += dif;
+          await this.productosRepository.save(productoDetalle);
         });
 
         // Procesar adiciones
@@ -368,12 +376,17 @@ export class VentasService {
           venta.productos = [...venta.productos, nuevoDetalle];
 
           // Actualizar stock
-          const inventario = await this.inventarioRepository.findOneBy({
+          /* const inventario = await this.inventarioRepository.findOneBy({
             id_producto: prod.id_producto,
           });
 
           inventario.stock -= prod.cantidad;
-          await this.inventarioRepository.save(inventario);
+          await this.inventarioRepository.save(inventario); */
+          const productoDetalle = await this.productosRepository.findOne({
+            where: { id: prod.id_producto },
+          });
+          productoDetalle.stock -= prod.cantidad;
+          await this.productosRepository.save(productoDetalle);
         });
 
         // Procesar eliminaciones
@@ -383,12 +396,17 @@ export class VentasService {
           );
 
           // Actualizar stock
-          const inventario = await this.inventarioRepository.findOneBy({
+          /* const inventario = await this.inventarioRepository.findOneBy({
             id_producto: prod.id_producto,
           });
 
           inventario.stock += prod.cantidad;
-          await this.inventarioRepository.save(inventario);
+          await this.inventarioRepository.save(inventario); */
+          const productoDetalle = await this.productosRepository.findOne({
+            where: { id: prod.id_producto },
+          });
+          productoDetalle.stock += prod.cantidad;
+          await this.productosRepository.save(productoDetalle);
         });
       }
 

@@ -1,4 +1,4 @@
-import {
+/* import {
   BaseEntity,
   Column,
   Entity,
@@ -23,4 +23,4 @@ export class Inventario extends BaseEntity {
 
   @RelationId((inventario: Inventario) => inventario.producto)
   id_producto: number;
-}
+} */

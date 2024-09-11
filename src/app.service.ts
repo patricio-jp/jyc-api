@@ -36,6 +36,66 @@ export class AppService {
             precioUnitario: 30000,
           },
         ],
+        /* inventario: {
+        }, */
+        stock: 5,
+      },
+      {
+        codigo: 'SEC24',
+        nombre: 'Secarropas',
+        precios: [
+          {
+            fechaInicio: '2023-07-01',
+            precioUnitario: 50000,
+          },
+        ],
+        costos: [
+          {
+            fechaInicio: '2023-07-01',
+            precioUnitario: 25000,
+          },
+        ],
+        /* inventario: {
+        }, */
+        stock: 5,
+      },
+      {
+        codigo: 'SMTV32',
+        nombre: 'Smart TV 32"',
+        precios: [
+          {
+            fechaInicio: '2023-07-01',
+            precioUnitario: 90000,
+          },
+        ],
+        costos: [
+          {
+            fechaInicio: '2023-07-01',
+            precioUnitario: 45000,
+          },
+        ],
+        /* inventario: {
+        }, */
+        stock: 5,
+      },
+      {
+        codigo: 'COCINDU4',
+        nombre: 'Cocina industrial 4 hornallas',
+        precios: [
+          {
+            fechaInicio: '2023-07-01',
+            precioUnitario: 90000,
+          },
+        ],
+        costos: [
+          {
+            fechaInicio: '2023-07-01',
+            precioUnitario: 45000,
+          },
+        ],
+        /* inventario: {
+        }, */
+        stock: 5,
       },
     ]);
     await this.productosRepository.save(initialProductos);
@@ -82,7 +142,7 @@ export class AppService {
         ],
       },
     ]);
-    await this.clientesRepository.insert(initialClientes);
+    await this.clientesRepository.save(initialClientes);
 
     return { message: 'Initial data loaded' };
   }

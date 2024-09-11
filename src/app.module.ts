@@ -12,6 +12,7 @@ import { join } from 'path';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Cliente } from './entities/clientes/clientes.entity';
 import { Producto } from './entities/productos/productos.entity';
+import { ProductosModule } from './productos/productos.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { Producto } from './entities/productos/productos.entity';
     VentasModule,
     CreditosModule,
     TypeOrmModule.forFeature([Cliente, Producto]),
+    ProductosModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -37,7 +37,7 @@ class VentaInfo {
 export class DetalleVentaDTO {
   @IsInt()
   @ApiProperty()
-  producto_id: number;
+  id_producto: number;
 
   @IsInt()
   @Min(1)
