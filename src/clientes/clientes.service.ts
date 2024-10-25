@@ -47,10 +47,12 @@ export class ClientesService {
       nuevoCliente.nombre = nombre;
       nuevoCliente.apellido = apellido;
       nuevoCliente.dni = dni;
-      nuevoCliente.fechaNacimiento = fechaNacimiento;
+      nuevoCliente.fechaNacimiento = new Date(fechaNacimiento.valueOf());
       nuevoCliente.saldo = saldo ? saldo : 0;
       nuevoCliente.observaciones = observaciones;
       nuevoCliente.estado = estado ? estado : EstadoCliente.AConfirmar;
+
+      await nuevoCliente.save();
 
       if (domicilios) {
         const nuevosDomicilios = await Promise.all(
@@ -87,7 +89,7 @@ export class ClientesService {
         nuevoCliente.id_cobradorAsociado = id_cobradorAsociado;
       }
 
-      return await this.usuariosRepository.insert(nuevoCliente);
+      return await this.clientesRepository.save(nuevoCliente);
     } catch (error) {
       console.error(error);
       return `Error: ${error}`;
@@ -126,7 +128,7 @@ export class ClientesService {
       if (nombre) cliente.nombre = nombre;
       cliente.apellido = apellido;
       if (dni) cliente.dni = dni;
-      cliente.fechaNacimiento = fechaNacimiento;
+      cliente.fechaNacimiento = new Date(fechaNacimiento.valueOf());
       if (saldo) cliente.saldo = saldo;
       cliente.observaciones = observaciones;
       if (estado) cliente.estado = estado;

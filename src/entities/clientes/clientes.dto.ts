@@ -6,6 +6,7 @@ import {
   IsEnum,
   IsISO8601,
   IsInt,
+  IsObject,
   IsOptional,
   IsString,
   ValidateNested,
@@ -13,6 +14,7 @@ import {
 import { EstadoCliente } from './clientes.entity';
 import { CreateDomicilioDTO } from '../domicilios/domicilios.dto';
 import { CreateTelefonoDTO } from '../telefonos/telefonos.dto';
+import { CreateZonaDTO } from '../zonas/zonas.dto';
 
 export class CreateClienteDTO {
   @IsInt()
@@ -61,6 +63,15 @@ export class CreateClienteDTO {
   @IsInt()
   @ApiProperty()
   id_cobradorAsociado?: number;
+
+  @IsInt()
+  @ApiProperty()
+  id_zona: number;
+
+  @IsOptional()
+  @IsObject()
+  @ApiProperty()
+  zona?: CreateZonaDTO;
 
   @IsOptional()
   @IsDecimal({ decimal_digits: '0,2' })

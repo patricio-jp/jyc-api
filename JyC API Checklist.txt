@@ -1,0 +1,4 @@
+JyC API Checklist
+
+[ ] Productos (completo)
+	[*] Crear producto (inserción correcta de todos los campos, incluyendo las sub-entidades)
