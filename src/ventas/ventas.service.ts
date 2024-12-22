@@ -12,6 +12,7 @@ import * as path from 'path'; */
 //import { Inventario } from 'src/entities/inventario/inventario.entity';
 import { Producto } from 'src/entities/productos/productos.entity';
 import { Cliente } from 'src/entities/clientes/clientes.entity';
+import { FunctionsService } from 'src/helpers/functions/functions.service';
 
 @Injectable()
 export class VentasService {
@@ -24,6 +25,7 @@ export class VentasService {
     private productosRepository: Repository<Producto>,
     @InjectRepository(Cliente)
     private clientesRepository: Repository<Cliente>,
+    private functionsService: FunctionsService,
   ) {}
 
   async create(createVentaDto: CreateVentaDTO) {
@@ -55,7 +57,11 @@ export class VentasService {
       nuevaVenta.observaciones = observaciones;
       if (estado) nuevaVenta.estado = estado;
       nuevaVenta.fechaEntrega = fechaEntrega;
-      nuevaVenta.id_cliente = cliente_id;
+
+      const cliente = await this.clientesRepository.findOne({
+        where: { id: cliente_id },
+      });
+      if (cliente) nuevaVenta.cliente = cliente;
 
       const nuevoDetalle = [];
       for (const prod of productos) {
@@ -103,7 +109,9 @@ export class VentasService {
           if (anticipo > 0) {
             const saldoActual = Number(cliente.saldo);
             const nuevoSaldo =
-              saldoActual + Number(nuevaVenta.total) - Number(anticipo);
+              saldoActual +
+              Number(cantidadCuotas) * Number(montoCuota) -
+              Number(anticipo);
             cliente.saldo = nuevoSaldo;
           } else {
             cliente.saldo = Number(cliente.saldo) + Number(nuevaVenta.total);
@@ -132,7 +140,7 @@ export class VentasService {
           if (numCuota !== 1) {
             switch (periodo) {
               case Periodo.Mensual: {
-                fechaVenc.setMonth(fechaVenc.getMonth() + 1);
+                fechaVenc = this.functionsService.addMonth(fechaVenc);
                 break;
               }
               case Periodo.Quincenal: {
@@ -166,6 +174,7 @@ export class VentasService {
               cuota.fechaPago = fechaInicio;
               anticipoRestante = 0;
             }
+            nuevaFinanciacion.fechaUltimoPago = fechaInicio;
           }
 
           cuota.fechaVencimiento = fechaVenc;
@@ -236,7 +245,7 @@ export class VentasService {
       venta.observaciones = observaciones;
       venta.estado = estado;
       venta.fechaEntrega = fechaEntrega;
-      venta.id_cliente = cliente_id;
+      venta.clienteId = cliente_id;
 
       if (condicion === CondicionOperacion.CTA_CTE && financiacion) {
         // Si se envía una financiación, se anula la existente directamente y se crea una nueva
@@ -272,7 +281,7 @@ export class VentasService {
           if (numCuota !== 1) {
             switch (periodo) {
               case Periodo.Mensual: {
-                fechaVenc.setMonth(fechaVenc.getMonth() + 1);
+                fechaVenc = this.functionsService.addMonth(fechaVenc);
                 break;
               }
               case Periodo.Quincenal: {

@@ -46,7 +46,7 @@ export class CreditosController {
 
   @Patch(':id/cargar-pago')
   async cargarPago(@Param('id') id: string, @Body() pago: CargarPagoDTO) {
-    return id + pago;
+    return this.creditosService.cargarPago(+id, pago);
   }
 
   @Patch(':id/estado')

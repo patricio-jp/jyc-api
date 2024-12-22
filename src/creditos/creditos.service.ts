@@ -16,7 +16,9 @@ export class CreditosService {
   async findAll() {
     return await this.creditosRepository.findAndCount({
       relations: {
-        venta: true,
+        venta: {
+          productos: true,
+        },
         cuotas: true,
       },
     });
@@ -44,19 +46,22 @@ export class CreditosService {
         (cuota) => cuota.montoPagado < cuota.montoCuota,
       );
 
-      let montoAPagar = pago.monto;
+      let montoAPagar = Number(pago.monto);
 
       while (montoAPagar > 0 && cuotaAPagar) {
-        const saldoCuota = cuotaAPagar.montoCuota - cuotaAPagar.montoPagado;
+        const saldoCuota =
+          Number(cuotaAPagar.montoCuota) - Number(cuotaAPagar.montoPagado);
 
         if (montoAPagar >= saldoCuota) {
-          cuotaAPagar.montoPagado += saldoCuota;
+          cuotaAPagar.montoPagado =
+            Number(cuotaAPagar.montoPagado) + saldoCuota;
           montoAPagar -= saldoCuota;
           if (cuotaAPagar.montoPagado == cuotaAPagar.montoCuota) {
             cuotaAPagar.estado = EstadoCuota.Pagada;
           }
         } else {
-          cuotaAPagar.montoPagado += montoAPagar;
+          cuotaAPagar.montoPagado =
+            Number(cuotaAPagar.montoPagado) + montoAPagar;
           montoAPagar = 0;
           if (cuotaAPagar.montoPagado == cuotaAPagar.montoCuota) {
             cuotaAPagar.estado = EstadoCuota.Pagada;
@@ -70,7 +75,7 @@ export class CreditosService {
         );
       }
 
-      credito.venta.cliente.saldo -= pago.monto;
+      credito.venta.cliente.saldo -= Number(pago.monto);
       if (montoAPagar > 0 && !cuotaAPagar) {
         // Asignar saldo pagado de más a la última cuota
         cuotaAPagar.montoPagado += montoAPagar;

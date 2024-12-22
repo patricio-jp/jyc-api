@@ -13,6 +13,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Cliente } from './entities/clientes/clientes.entity';
 import { Producto } from './entities/productos/productos.entity';
 import { ProductosModule } from './productos/productos.module';
+import { FunctionsService } from './helpers/functions/functions.service';
 
 @Module({
   imports: [
@@ -29,6 +30,6 @@ import { ProductosModule } from './productos/productos.module';
     ProductosModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, FunctionsService],
 })
 export class AppModule {}

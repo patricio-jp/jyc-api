@@ -101,7 +101,14 @@ export class ClientesService {
   }
 
   async findOne(id: number) {
-    return await this.clientesRepository.findOneBy({ id });
+    return await this.clientesRepository.findOne({
+      where: {
+        id,
+      },
+      relations: {
+        ventas: true,
+      },
+    });
   }
 
   async update(id: number, updateClienteDto: UpdateClienteDTO) {

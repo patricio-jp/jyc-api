@@ -2,3 +2,10 @@ JyC API Checklist
 
 [ ] Productos (completo)
 	[*] Crear producto (inserción correcta de todos los campos, incluyendo las sub-entidades)
+
+
+[---] Bug list
+  [?] Al crear una venta con crédito y anticipo pagado, no se ve reflejada la fecha de último pago.
+  [?] Al crear una venta con crédito mensual con fecha 31, al sumar los 30 días, termina salteando un mes y colocando como siguiente fecha el 1er día del mes siguiente del salteado.
+  [ ] Al cargar un pago, no se actualiza el saldo del cliente (debería restar)
+  [ ] No se actualiza fecha de último pago en la entidad Crédito

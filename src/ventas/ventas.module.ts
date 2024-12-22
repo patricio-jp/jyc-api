@@ -6,12 +6,13 @@ import { Venta } from 'src/entities/operaciones/ventas.entity';
 //import { Inventario } from 'src/entities/inventario/inventario.entity';
 import { Producto } from 'src/entities/productos/productos.entity';
 import { Cliente } from 'src/entities/clientes/clientes.entity';
+import { FunctionsService } from 'src/helpers/functions/functions.service';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Venta, Producto, /*  Inventario, */ Cliente]),
   ],
   controllers: [VentasController],
-  providers: [VentasService],
+  providers: [VentasService, FunctionsService],
 })
 export class VentasModule {}
