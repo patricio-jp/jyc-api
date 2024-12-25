@@ -74,3 +74,13 @@ export class CreateUsuarioDTO {
 }
 
 export class UpdateUsuarioDTO extends PartialType(CreateUsuarioDTO) {}
+
+export class LoginDTO {
+  @IsInt()
+  @ApiProperty()
+  dni: number;
+
+  @IsString()
+  @ApiProperty()
+  password: string;
+}

@@ -14,6 +14,8 @@ import { Cliente } from './entities/clientes/clientes.entity';
 import { Producto } from './entities/productos/productos.entity';
 import { ProductosModule } from './productos/productos.module';
 import { FunctionsService } from './helpers/functions/functions.service';
+import { AuthModule } from './auth/auth.module';
+import { AuthGuard } from './auth/auth.guard';
 
 @Module({
   imports: [
@@ -28,8 +30,16 @@ import { FunctionsService } from './helpers/functions/functions.service';
     CreditosModule,
     TypeOrmModule.forFeature([Cliente, Producto]),
     ProductosModule,
+    AuthModule,
   ],
   controllers: [AppController],
-  providers: [AppService, FunctionsService],
+  providers: [
+    AppService,
+    FunctionsService,
+    {
+      provide: 'APP_GUARD',
+      useClass: AuthGuard,
+    },
+  ],
 })
 export class AppModule {}
