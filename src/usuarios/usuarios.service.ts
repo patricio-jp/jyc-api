@@ -24,21 +24,53 @@ export class UsuariosService {
       const existentUser = await this.usuariosRepository.findOneBy({
         dni: usuario.dni,
       });
-      if (!existentUser) {
-        const salt = process.env.HASH_PASSWORD ? process.env.HASH_PASSWORD : 10;
-        const hashedPassword = await bcrypt.hash(usuario.password, salt);
-
-        const newUser = this.usuariosRepository.create({
-          ...usuario,
-          password: hashedPassword,
-        });
-
-        return this.usuariosRepository.insert(newUser);
-      } else {
-        return 'Ya existe un usuario con el DNI ingresado';
+      if (existentUser) {
+        return { message: 'Ya existe un usuario con el DNI ingresado' };
       }
+
+      const salt = await bcrypt.genSalt(10);
+      console.log(salt);
+      const hashedPassword = await bcrypt.hash(usuario.password, salt);
+
+      const newUser = new Usuario();
+      newUser.nombre = usuario.nombre;
+      newUser.apellido = usuario.apellido;
+      newUser.dni = usuario.dni;
+      newUser.password = hashedPassword;
+      newUser.fechaNacimiento = new Date(usuario.fechaNacimiento.valueOf());
+      newUser.fechaInicio = new Date(usuario.fechaInicio.valueOf());
+      newUser.rol = usuario.rol;
+
+      if (usuario.domicilios) {
+        const domicilios = await Promise.all(
+          usuario.domicilios.map(async (domicilio: CreateDomicilioDTO) => {
+            const nuevoDom = new DomicilioUsuario();
+            nuevoDom.direccion = domicilio.direccion;
+            nuevoDom.barrio = domicilio.barrio;
+            nuevoDom.localidad = domicilio.localidad;
+
+            return nuevoDom;
+          }),
+        );
+        newUser.domicilios = domicilios;
+      }
+
+      if (usuario.telefonos) {
+        const telefonos = await Promise.all(
+          usuario.telefonos.map(async (telefono: CreateTelefonoDTO) => {
+            const nuevoTel = new TelefonoUsuario();
+            nuevoTel.telefono = telefono.telefono;
+
+            return nuevoTel;
+          }),
+        );
+        newUser.telefonos = telefonos;
+      }
+
+      return this.usuariosRepository.save(newUser);
     } catch (error) {
-      return null;
+      console.error(error);
+      return { error };
     }
   }
 

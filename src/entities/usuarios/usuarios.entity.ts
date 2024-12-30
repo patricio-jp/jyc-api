@@ -41,10 +41,16 @@ export class Usuario extends BaseEntity {
   @Column('date')
   fechaNacimiento: Date;
 
-  @OneToMany(() => DomicilioUsuario, (domicilio) => domicilio.usuario)
+  @OneToMany(() => DomicilioUsuario, (domicilio) => domicilio.usuario, {
+    eager: true,
+    cascade: true,
+  })
   domicilios: Domicilio[];
 
-  @OneToMany(() => TelefonoUsuario, (telefono) => telefono.usuario)
+  @OneToMany(() => TelefonoUsuario, (telefono) => telefono.usuario, {
+    eager: true,
+    cascade: true,
+  })
   telefonos: Telefono[];
 
   @Column('date')

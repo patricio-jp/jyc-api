@@ -18,12 +18,22 @@ export class AuthService {
     const { dni, password } = usuario;
     const user = await this.usuariosRepository.findOneBy({ dni });
 
+    if (!user) {
+      throw new UnauthorizedException();
+    }
+
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       throw new UnauthorizedException();
     }
 
-    const payload = { dni: user.dni, sub: user.id };
+    const payload = {
+      apellido: user.apellido,
+      nombre: user.nombre,
+      dni: user.dni,
+      sub: user.id,
+      rol: user.rol,
+    };
     const token = await this.jwtService.signAsync(payload);
 
     return { access_token: token };

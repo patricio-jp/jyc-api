@@ -16,10 +16,18 @@ import { ProductosModule } from './productos/productos.module';
 import { FunctionsService } from './helpers/functions/functions.service';
 import { AuthModule } from './auth/auth.module';
 import { AuthGuard } from './auth/auth.guard';
+import { JwtModule } from '@nestjs/jwt';
 
 @Module({
   imports: [
-    ConfigModule.forRoot(),
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
+    JwtModule.register({
+      secret: process.env.HASH_PASSWORD,
+      global: true,
+      signOptions: { expiresIn: '15m' },
+    }),
     DatabaseModule,
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'uploads'),
