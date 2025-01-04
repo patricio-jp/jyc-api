@@ -13,6 +13,8 @@ import {
   UpdateUsuarioDTO,
 } from '../entities/usuarios/usuarios.dto';
 import { ApiTags } from '@nestjs/swagger';
+import { Roles } from 'src/helpers/roleDetector';
+import { Rol } from 'src/entities/usuarios/usuarios.entity';
 
 @ApiTags('Usuarios')
 @Controller('usuarios')
@@ -20,22 +22,26 @@ export class UsuariosController {
   constructor(private readonly usuariosService: UsuariosService) {}
 
   @Post()
+  @Roles(Rol.Administrador, Rol.Supervisor)
   async create(@Body() createUsuarioDto: CreateUsuarioDTO) {
     return this.usuariosService.create(createUsuarioDto);
   }
 
   @Get()
+  @Roles(Rol.Administrador, Rol.Supervisor)
   async findAll() {
     const [data, count] = await this.usuariosService.findAll();
     return { data, count };
   }
 
   @Get(':id')
+  @Roles(Rol.Administrador, Rol.Supervisor)
   async findOne(@Param('id') id: string) {
     return this.usuariosService.findOne(+id);
   }
 
   @Patch(':id')
+  @Roles(Rol.Administrador, Rol.Supervisor)
   async update(
     @Param('id') id: string,
     @Body() updateUsuarioDto: UpdateUsuarioDTO,
@@ -44,11 +50,13 @@ export class UsuariosController {
   }
 
   @Delete(':id')
+  @Roles(Rol.Administrador, Rol.Supervisor)
   async softDelete(@Param('id') id: string) {
     return this.usuariosService.softDelete(+id);
   }
 
   @Delete(':id/force')
+  @Roles(Rol.Administrador)
   async delete(@Param('id') id: string) {
     return this.usuariosService.delete(+id);
   }

@@ -14,6 +14,8 @@ import {
   ModifyProductoPrecioDTO,
 } from 'src/entities/productos/productos.dto';
 import { ApiTags } from '@nestjs/swagger';
+import { Roles } from 'src/helpers/roleDetector';
+import { Rol } from 'src/entities/usuarios/usuarios.entity';
 
 @ApiTags('Productos')
 @Controller('productos')
@@ -21,6 +23,7 @@ export class ProductosController {
   constructor(private readonly productosService: ProductosService) {}
 
   @Post()
+  @Roles(Rol.Administrador, Rol.Supervisor)
   async create(@Body() createProductoDto: CreateProductoDTO) {
     return this.productosService.create(createProductoDto);
   }
@@ -45,6 +48,7 @@ export class ProductosController {
   } */
 
   @Patch(':id/precio')
+  @Roles(Rol.Administrador, Rol.Supervisor)
   async cambiarPrecio(
     @Param('id') id: string,
     @Body() producto: ModifyProductoPrecioDTO,
@@ -53,6 +57,7 @@ export class ProductosController {
   }
 
   @Patch(':id/costo')
+  @Roles(Rol.Administrador, Rol.Supervisor)
   async cambiarCosto(
     @Param('id') id: string,
     @Body() producto: ModifyProductoPrecioDTO,
@@ -61,11 +66,13 @@ export class ProductosController {
   }
 
   @Delete(':id')
+  @Roles(Rol.Administrador, Rol.Supervisor)
   async softRemove(@Param('id') id: string) {
     return this.productosService.softRemove(+id);
   }
 
   @Delete(':id/force')
+  @Roles(Rol.Administrador)
   async remove(@Param('id') id: string) {
     return this.productosService.remove(+id);
   }

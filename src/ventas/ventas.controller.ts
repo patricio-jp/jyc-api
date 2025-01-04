@@ -16,6 +16,8 @@ import { ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { Request } from 'express';
+import { Roles } from 'src/helpers/roleDetector';
+import { Rol } from 'src/entities/usuarios/usuarios.entity';
 
 @ApiTags('Ventas')
 @Controller('ventas')
@@ -37,6 +39,7 @@ export class VentasController {
     }),
   )
   @ApiConsumes('multipart/form-data')
+  @Roles(Rol.Administrador, Rol.Supervisor)
   async create(
     @UploadedFile() file: Express.Multer.File,
     @Body() createVentaDto: CreateVentaDTO,
@@ -75,6 +78,7 @@ export class VentasController {
     }),
   )
   @ApiConsumes('multipart/form-data')
+  @Roles(Rol.Administrador, Rol.Supervisor)
   update(
     @Param('id') id: string,
     @Body() updateVentaDto: CreateVentaDTO,
@@ -87,11 +91,13 @@ export class VentasController {
   }
 
   @Delete(':id')
+  @Roles(Rol.Administrador, Rol.Supervisor)
   async softRemove(@Param('id') id: string) {
     return this.ventasService.softRemove(+id);
   }
 
   @Delete(':id/force')
+  @Roles(Rol.Administrador)
   async remove(@Param('id') id: string) {
     return this.ventasService.remove(+id);
   }

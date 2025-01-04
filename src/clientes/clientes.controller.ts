@@ -13,6 +13,8 @@ import {
   UpdateClienteDTO,
 } from 'src/entities/clientes/clientes.dto';
 import { ApiTags } from '@nestjs/swagger';
+import { Roles } from 'src/helpers/roleDetector';
+import { Rol } from 'src/entities/usuarios/usuarios.entity';
 
 @ApiTags('Clientes')
 @Controller('clientes')
@@ -20,6 +22,7 @@ export class ClientesController {
   constructor(private readonly clientesService: ClientesService) {}
 
   @Post()
+  @Roles(Rol.Administrador, Rol.Supervisor)
   async create(@Body() createClienteDto: CreateClienteDTO) {
     return this.clientesService.create(createClienteDto);
   }
@@ -36,6 +39,7 @@ export class ClientesController {
   }
 
   @Patch(':id')
+  @Roles(Rol.Administrador, Rol.Supervisor)
   async update(
     @Param('id') id: string,
     @Body() updateClienteDto: UpdateClienteDTO,
@@ -44,11 +48,13 @@ export class ClientesController {
   }
 
   @Delete(':id')
+  @Roles(Rol.Administrador, Rol.Supervisor)
   async softRemove(@Param('id') id: string) {
     return this.clientesService.softRemove(+id);
   }
 
   @Delete(':id/force')
+  @Roles(Rol.Administrador)
   async remove(@Param('id') id: string) {
     return this.clientesService.remove(+id);
   }
