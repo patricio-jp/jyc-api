@@ -58,4 +58,10 @@ export class ClientesController {
   async remove(@Param('id') id: string) {
     return this.clientesService.remove(+id);
   }
+
+  @Patch(':id/restore')
+  @Roles(Rol.Administrador)
+  async restore(@Param('id') id: string) {
+    return this.clientesService.restore(+id);
+  }
 }

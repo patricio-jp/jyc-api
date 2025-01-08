@@ -12,4 +12,10 @@ export class AuthController {
   async login(@Body() loginDto: LoginDTO) {
     return this.authService.login(loginDto);
   }
+
+  @SkipAuth()
+  @Post('token-refresh')
+  async refreshToken(@Body('token') oldToken: string) {
+    return this.authService.refreshToken(oldToken);
+  }
 }

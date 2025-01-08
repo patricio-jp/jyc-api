@@ -15,6 +15,7 @@ import {
 import { ApiTags } from '@nestjs/swagger';
 import { Roles } from 'src/helpers/roleDetector';
 import { Rol } from 'src/entities/usuarios/usuarios.entity';
+import { SkipAuth } from 'src/helpers/allowPublicAccess';
 
 @ApiTags('Usuarios')
 @Controller('usuarios')
@@ -22,7 +23,8 @@ export class UsuariosController {
   constructor(private readonly usuariosService: UsuariosService) {}
 
   @Post()
-  @Roles(Rol.Administrador, Rol.Supervisor)
+  //@Roles(Rol.Administrador, Rol.Supervisor)
+  @SkipAuth()
   async create(@Body() createUsuarioDto: CreateUsuarioDTO) {
     return this.usuariosService.create(createUsuarioDto);
   }

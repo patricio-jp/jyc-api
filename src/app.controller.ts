@@ -1,5 +1,6 @@
 import { Controller, Get, Post } from '@nestjs/common';
 import { AppService } from './app.service';
+import { SkipAuth } from './helpers/allowPublicAccess';
 
 @Controller()
 export class AppController {
@@ -11,6 +12,7 @@ export class AppController {
   }
 
   @Post()
+  @SkipAuth()
   async loadInitialData() {
     return this.appService.loadInitialData();
   }

@@ -193,7 +193,31 @@ export class ClientesService {
       const cliente = await this.clientesRepository.findOneBy({ id });
       if (!cliente) return 'No existe el cliente con el ID ingresado';
 
+      for (const domicilio of cliente.domicilios) {
+        await domicilio.remove();
+      }
+
+      for (const telefono of cliente.telefonos) {
+        await telefono.remove();
+      }
+
       return await this.clientesRepository.remove(cliente);
+    } catch (error) {
+      return `Error: ${error}`;
+    }
+  }
+
+  async restore(id: number) {
+    try {
+      const cliente = await this.clientesRepository.findOne({
+        where: { id },
+        withDeleted: true,
+      });
+      if (!cliente) return 'No existe el cliente con el ID ingresado';
+
+      if (!cliente.deletedAt) return 'El cliente no está eliminado';
+
+      return await this.clientesRepository.recover(cliente);
     } catch (error) {
       return `Error: ${error}`;
     }
