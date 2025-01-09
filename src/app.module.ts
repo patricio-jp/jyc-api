@@ -17,6 +17,8 @@ import { FunctionsService } from './helpers/functions/functions.service';
 import { AuthModule } from './auth/auth.module';
 import { AuthGuard } from './auth/auth.guard';
 import { JwtModule } from '@nestjs/jwt';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { LoggingInterceptor } from './helpers/interceptors/logger.interceptor';
 
 @Module({
   imports: [
@@ -47,6 +49,10 @@ import { JwtModule } from '@nestjs/jwt';
     {
       provide: 'APP_GUARD',
       useClass: AuthGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: LoggingInterceptor,
     },
   ],
 })
