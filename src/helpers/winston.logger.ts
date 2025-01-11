@@ -14,6 +14,10 @@ interface LogPetition {
   body: any;
 }
 
+interface LogError extends LogPetition {
+  error: string;
+}
+
 @Injectable()
 export class WinstonLogger implements LoggerService {
   private readonly logger: winston.Logger;
@@ -71,8 +75,22 @@ export class WinstonLogger implements LoggerService {
   }
 
   logPetition(logInfo: LogPetition) {
-    this.logger.info(
-      `[${logInfo.method}] ${logInfo.route} | ${logInfo.statusCode}  made from ${logInfo.ip} - User: ${logInfo.user} - Req.Body: ${JSON.stringify(logInfo.body)}`,
-    );
+    let message = '';
+    if (Object.keys(logInfo.body).length !== 0) {
+      message = `[${logInfo.method}] ${logInfo.route} | ${logInfo.statusCode}  made from ${logInfo.ip} - User: ${logInfo.user} - Req.Body: ${JSON.stringify(logInfo.body)}`;
+    } else {
+      message = `[${logInfo.method}] ${logInfo.route} | ${logInfo.statusCode}  made from ${logInfo.ip} - User: ${logInfo.user}`;
+    }
+    this.logger.info(message);
+  }
+
+  logError(logInfo: LogError) {
+    let message = '';
+    if (Object.keys(logInfo.body).length !== 0) {
+      message = `[${logInfo.method}] ${logInfo.route} | ${logInfo.statusCode}  made from ${logInfo.ip} - User: ${logInfo.user} - Req.Body: ${JSON.stringify(logInfo.body)} - Error: ${logInfo.error}`;
+    } else {
+      message = `[${logInfo.method}] ${logInfo.route} | ${logInfo.statusCode}  made from ${logInfo.ip} - User: ${logInfo.user} - Error: ${logInfo.error}`;
+    }
+    this.logger.error(message);
   }
 }

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as fs from 'fs';
 import { Credito, Periodo } from 'src/entities/creditos/creditos.entity';
@@ -120,7 +120,7 @@ export class VentasService {
         }
 
         const nuevaFinanciacion = new Credito();
-        nuevaFinanciacion.fechaInicio = fechaInicio;
+        nuevaFinanciacion.fechaInicio = new Date(fechaInicio);
         if (anticipo) nuevaFinanciacion.anticipo = anticipo;
         nuevaFinanciacion.cantidadCuotas = cantidadCuotas;
         nuevaFinanciacion.montoCuota = montoCuota;
@@ -141,6 +141,18 @@ export class VentasService {
             switch (periodo) {
               case Periodo.Mensual: {
                 fechaVenc = this.functionsService.addMonth(fechaVenc);
+                if (
+                  fechaVenc.getDate() < nuevaFinanciacion.fechaInicio.getDate()
+                ) {
+                  fechaVenc = this.functionsService.addMonth(fechaVenc);
+                  fechaVenc.setDate(0); // Esto ajusta al último día del mes anterior
+                  if (
+                    fechaVenc.getDate() >
+                    nuevaFinanciacion.fechaInicio.getDate()
+                  ) {
+                    fechaVenc.setDate(nuevaFinanciacion.fechaInicio.getDate());
+                  }
+                }
                 break;
               }
               case Periodo.Quincenal: {
@@ -189,7 +201,7 @@ export class VentasService {
 
       return await this.ventasRepository.save(nuevaVenta);
     } catch (error) {
-      return `Error: ${error}`;
+      throw new InternalServerErrorException(`${error}`);
     }
   }
 
@@ -264,7 +276,7 @@ export class VentasService {
         await creditoActual.anularCredito();
         const nuevaFinanciacion = new Credito();
 
-        nuevaFinanciacion.fechaInicio = fechaInicio;
+        nuevaFinanciacion.fechaInicio = new Date(fechaInicio);
         nuevaFinanciacion.anticipo = anticipo;
         nuevaFinanciacion.cantidadCuotas = cantidadCuotas;
         nuevaFinanciacion.montoCuota = montoCuota;
@@ -282,6 +294,18 @@ export class VentasService {
             switch (periodo) {
               case Periodo.Mensual: {
                 fechaVenc = this.functionsService.addMonth(fechaVenc);
+                if (
+                  fechaVenc.getDate() < nuevaFinanciacion.fechaInicio.getDate()
+                ) {
+                  fechaVenc = this.functionsService.addMonth(fechaVenc);
+                  fechaVenc.setDate(0); // Esto ajusta al último día del mes anterior
+                  if (
+                    fechaVenc.getDate() >
+                    nuevaFinanciacion.fechaInicio.getDate()
+                  ) {
+                    fechaVenc.setDate(nuevaFinanciacion.fechaInicio.getDate());
+                  }
+                }
                 break;
               }
               case Periodo.Quincenal: {

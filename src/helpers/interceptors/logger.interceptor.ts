@@ -19,17 +19,32 @@ export class LoggingInterceptor implements NestInterceptor {
     const user = request.user ? request.user.sub : 'Anonymous';
 
     return next.handle().pipe(
-      tap(() => {
-        const { statusCode } = response;
-        this.logger.logPetition({
-          message: 'HTTP Request',
-          method,
-          route: originalUrl,
-          statusCode,
-          ip: request.ip,
-          user,
-          body,
-        });
+      tap({
+        next: () => {
+          const { statusCode } = response;
+          this.logger.logPetition({
+            message: 'HTTP Request',
+            method,
+            route: originalUrl,
+            statusCode,
+            ip: request.ip,
+            user,
+            body,
+          });
+        },
+        error: (err) => {
+          const { statusCode } = response;
+          this.logger.logError({
+            message: 'HTTP Request Error',
+            method,
+            route: originalUrl,
+            statusCode: statusCode || 500,
+            ip: request.ip,
+            user,
+            body,
+            error: err.message,
+          });
+        },
       }),
     );
   }
