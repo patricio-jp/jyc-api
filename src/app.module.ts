@@ -19,6 +19,7 @@ import { AuthGuard } from './auth/auth.guard';
 import { JwtModule } from '@nestjs/jwt';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { LoggingInterceptor } from './helpers/interceptors/logger.interceptor';
+import { BackupDatabaseModule } from './database/backup.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { LoggingInterceptor } from './helpers/interceptors/logger.interceptor';
       signOptions: { expiresIn: '15m' },
     }),
     DatabaseModule,
+    BackupDatabaseModule,
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'uploads'),
     }),
