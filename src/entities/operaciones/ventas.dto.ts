@@ -56,3 +56,8 @@ export class CreateVentaDTO extends IntersectionType(
   CreateOperacionDTO,
   VentaInfo,
 ) {}
+
+export class CreateVentaWithFileDTO {
+  data: CreateVentaDTO;
+  file: Express.Multer.File;
+}

@@ -7,6 +7,7 @@ import {
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { WinstonLogger } from 'src/helpers/winston.logger';
+import busboy = require('busboy');
 
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
@@ -16,6 +17,30 @@ export class LoggingInterceptor implements NestInterceptor {
     const request = context.switchToHttp().getRequest();
     const response = context.switchToHttp().getResponse();
     const { method, originalUrl, body } = request;
+
+    let requestBody = body;
+    let fileInfo: string;
+
+    if (method === 'POST' && request.is('multipart/form-data')) {
+      //console.log('File:', file);
+      const bb = busboy({ headers: request.headers });
+
+      bb.on('file', (fieldname, file, filename) => {
+        //console.log('File:', { fieldname, filename });
+        file.on('data', (data) => {
+          //console.log(`File [${file.toString()}] got ${data.length} bytes`);
+          fileInfo = `[File uploaded]: ${filename.filename} [${data.length} bytes] [encoding: ${filename.mimeType}]`;
+        });
+      });
+
+      bb.on('field', (name, value) => {
+        //console.log('Data: ', { name, value, info });
+        requestBody = JSON.parse(value);
+      });
+      //console.log('Files:', files);
+      request.pipe(bb);
+    }
+
     const user = request.user ? request.user.sub : 'Anonymous';
 
     return next.handle().pipe(
@@ -29,7 +54,8 @@ export class LoggingInterceptor implements NestInterceptor {
             statusCode,
             ip: request.ip,
             user,
-            body,
+            body: requestBody,
+            file: fileInfo,
           });
         },
         error: (err) => {
@@ -41,7 +67,8 @@ export class LoggingInterceptor implements NestInterceptor {
             statusCode: statusCode || 500,
             ip: request.ip,
             user,
-            body,
+            body: requestBody,
+            file: fileInfo,
             error: err.message,
           });
         },

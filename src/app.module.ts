@@ -20,6 +20,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { LoggingInterceptor } from './helpers/interceptors/logger.interceptor';
 import { BackupDatabaseModule } from './database/backup.module';
+import { FileController } from './helpers/controllers/files.controller';
 
 @Module({
   imports: [
@@ -34,7 +35,7 @@ import { BackupDatabaseModule } from './database/backup.module';
     DatabaseModule,
     BackupDatabaseModule,
     ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', 'uploads'),
+      rootPath: join(__dirname, 'uploads'),
     }),
     ClientesModule,
     UsuariosModule,
@@ -44,7 +45,7 @@ import { BackupDatabaseModule } from './database/backup.module';
     ProductosModule,
     AuthModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, FileController],
   providers: [
     AppService,
     FunctionsService,

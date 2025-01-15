@@ -12,6 +12,7 @@ interface LogPetition {
   ip: string;
   user: string;
   body: any;
+  file?: string;
 }
 
 interface LogError extends LogPetition {
@@ -78,6 +79,9 @@ export class WinstonLogger implements LoggerService {
     let message = '';
     if (Object.keys(logInfo.body).length !== 0) {
       message = `[${logInfo.method}] ${logInfo.route} | ${logInfo.statusCode}  made from ${logInfo.ip} - User: ${logInfo.user} - Req.Body: ${JSON.stringify(logInfo.body)}`;
+      if (logInfo.file) {
+        message += ` - ${logInfo.file}`;
+      }
     } else {
       message = `[${logInfo.method}] ${logInfo.route} | ${logInfo.statusCode}  made from ${logInfo.ip} - User: ${logInfo.user}`;
     }
@@ -88,6 +92,9 @@ export class WinstonLogger implements LoggerService {
     let message = '';
     if (Object.keys(logInfo.body).length !== 0) {
       message = `[${logInfo.method}] ${logInfo.route} | ${logInfo.statusCode}  made from ${logInfo.ip} - User: ${logInfo.user} - Req.Body: ${JSON.stringify(logInfo.body)} - Error: ${logInfo.error}`;
+      if (logInfo.file) {
+        message += ` - ${logInfo.file}`;
+      }
     } else {
       message = `[${logInfo.method}] ${logInfo.route} | ${logInfo.statusCode}  made from ${logInfo.ip} - User: ${logInfo.user} - Error: ${logInfo.error}`;
     }

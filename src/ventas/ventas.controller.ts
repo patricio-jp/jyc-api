@@ -11,7 +11,10 @@ import {
   Patch,
 } from '@nestjs/common';
 import { VentasService } from './ventas.service';
-import { CreateVentaDTO } from 'src/entities/operaciones/ventas.dto';
+import {
+  CreateVentaDTO,
+  CreateVentaWithFileDTO,
+} from 'src/entities/operaciones/ventas.dto';
 import { ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -31,8 +34,8 @@ export class VentasController {
         destination: './uploads/ventas',
         filename: (req, file, cb) => {
           const uniqueSuffix =
-            Date.now() + '-' + Math.round(Math.random() * 1e9);
-          const filename = `${uniqueSuffix}-${file.originalname}`;
+            new Date().toISOString() + '-' + Math.round(Math.random() * 1e9);
+          const filename = `${uniqueSuffix}_${file.originalname}`;
           cb(null, filename);
         },
       }),
@@ -42,14 +45,18 @@ export class VentasController {
   @Roles(Rol.Administrador, Rol.Supervisor)
   async create(
     @UploadedFile() file: Express.Multer.File,
-    @Body() createVentaDto: CreateVentaDTO,
+    @Body() createVentaDto: CreateVentaWithFileDTO,
     @Req() req: Request,
   ) {
+    //console.log(req);
+    if (typeof createVentaDto.data === 'string') {
+      createVentaDto.data = JSON.parse(createVentaDto.data) as CreateVentaDTO;
+    }
     if (file) {
       const fileUrl = `${req.protocol}://${req.get('host')}/uploads/ventas/${file.filename}`;
-      createVentaDto.comprobante_url = fileUrl;
+      createVentaDto.data.comprobante_url = fileUrl;
     }
-    return this.ventasService.create(createVentaDto);
+    return this.ventasService.create(createVentaDto.data);
   }
 
   @Get()
