@@ -46,22 +46,26 @@ export class VentasController {
   async create(
     @UploadedFile() file: Express.Multer.File,
     @Body() createVentaDto: CreateVentaWithFileDTO,
-    @Req() req: Request,
   ) {
     //console.log(req);
     if (typeof createVentaDto.data === 'string') {
       createVentaDto.data = JSON.parse(createVentaDto.data) as CreateVentaDTO;
     }
     if (file) {
-      const fileUrl = `${req.protocol}://${req.get('host')}/uploads/ventas/${file.filename}`;
+      const fileUrl = `/ventas/${file.filename}`;
       createVentaDto.data.comprobante_url = fileUrl;
     }
     return this.ventasService.create(createVentaDto.data);
   }
 
   @Get()
-  async findAll() {
-    const [data, count] = await this.ventasService.findAll();
+  async findAll(@Req() req: Request) {
+    const { page = 1, pageSize = 10, ...filters } = req.query;
+    const [data, count] = await this.ventasService.findAll(
+      Number(page),
+      Number(pageSize),
+      filters,
+    );
     return { data, count };
   }
 
@@ -90,9 +94,8 @@ export class VentasController {
     @Param('id') id: string,
     @Body() updateVentaDto: CreateVentaDTO,
     @UploadedFile() file: Express.Multer.File,
-    @Req() req: Request,
   ) {
-    const fileUrl = `${req.protocol}://${req.get('host')}/uploads/ventas/${file.filename}`;
+    const fileUrl = `/ventas/${file.filename}`;
     updateVentaDto.comprobante_url = fileUrl;
     return this.ventasService.update(+id, updateVentaDto);
   }

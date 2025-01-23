@@ -6,9 +6,11 @@ import {
   IsInt,
   IsNumber,
   IsOptional,
+  IsString,
   Min,
 } from 'class-validator';
 import { EstadoCredito, Periodo } from './creditos.entity';
+import { EstadoCarton } from '../cartones/carton.entity';
 
 export class CreateCreditoDTO {
   @IsOptional()
@@ -52,6 +54,26 @@ export class CreateCreditoDTO {
   @IsEnum(EstadoCredito)
   @ApiProperty()
   estado?: EstadoCredito;
+
+  @IsOptional()
+  @IsEnum(EstadoCarton)
+  @ApiProperty()
+  estadoCarton?: EstadoCredito;
+
+  @IsOptional()
+  @IsISO8601()
+  @ApiProperty()
+  fechaCarton?: Date;
+
+  @IsOptional()
+  @IsInt()
+  @ApiProperty()
+  id_grupoCartones?: number;
+
+  @IsOptional()
+  @IsString()
+  @ApiProperty()
+  alias_grupoCartones?: string;
 }
 
 export class CargarPagoDTO {

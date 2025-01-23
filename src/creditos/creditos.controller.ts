@@ -6,6 +6,7 @@ import {
   Param,
   Delete,
   Patch,
+  Req,
 } from '@nestjs/common';
 import { CreditosService } from './creditos.service';
 import { ApiTags } from '@nestjs/swagger';
@@ -13,6 +14,7 @@ import { CargarPagoDTO } from 'src/entities/creditos/creditos.dto';
 import { EstadoCredito } from 'src/entities/creditos/creditos.entity';
 import { Roles } from 'src/helpers/roleDetector';
 import { Rol } from 'src/entities/usuarios/usuarios.entity';
+import { Request } from 'express';
 // import { CreateCreditoDTO } from 'src/entities/creditos/creditos.dto';
 
 @ApiTags('Créditos')
@@ -26,8 +28,13 @@ export class CreditosController {
   } */
 
   @Get()
-  async findAll() {
-    const [data, count] = await this.creditosService.findAll();
+  async findAll(@Req() req: Request) {
+    const { page = 1, pageSize = 10, ...filters } = req.query;
+    const [data, count] = await this.creditosService.findAll(
+      Number(page),
+      Number(pageSize),
+      filters,
+    );
     return { data, count };
   }
 

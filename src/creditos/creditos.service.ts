@@ -1,10 +1,25 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { EstadoCarton } from 'src/entities/cartones/carton.entity';
 import { CargarPagoDTO } from 'src/entities/creditos/creditos.dto';
-import { Credito, EstadoCredito } from 'src/entities/creditos/creditos.entity';
+import {
+  Credito,
+  EstadoCredito,
+  Periodo,
+} from 'src/entities/creditos/creditos.entity';
 import { Cuota, EstadoCuota } from 'src/entities/cuotas/cuotas.entity';
 import { EstadoOperacion } from 'src/entities/operaciones/operaciones.entity';
 import { Repository } from 'typeorm';
+
+interface CreditosFilter {
+  estadoCredito?: EstadoCredito;
+  periodo?: Periodo;
+  estadoCarton?: EstadoCarton;
+  fechaVencCuota?: Date;
+  fechaUltimoPago?: Date;
+  searchTerm?: string;
+  mostrarEliminados?: boolean;
+}
 
 @Injectable()
 export class CreditosService {
@@ -13,15 +28,76 @@ export class CreditosService {
     private creditosRepository: Repository<Credito>,
   ) {}
 
-  async findAll() {
-    return await this.creditosRepository.findAndCount({
-      relations: {
-        venta: {
-          productos: true,
+  async findAll(page: number, limit: number, filter: CreditosFilter) {
+    const query = this.creditosRepository.createQueryBuilder('credito');
+    query.leftJoinAndSelect('credito.venta', 'venta');
+    query.leftJoinAndSelect('credito.cuotas', 'cuotas');
+    query.leftJoinAndSelect('credito.carton', 'carton');
+    query.leftJoinAndSelect('carton.grupoCartones', 'grupoCartones');
+    query.leftJoinAndSelect('venta.productos', 'detalle');
+    query.leftJoinAndSelect('detalle.producto', 'productos');
+    query.leftJoinAndSelect('venta.cliente', 'cliente');
+    query.leftJoinAndSelect('cliente.domicilios', 'domicilios');
+    query.leftJoinAndSelect('cliente.telefonos', 'telefonos');
+
+    if (filter.estadoCredito) {
+      query.andWhere('credito.estado = :estadoCredito', {
+        estadoCredito: filter.estadoCredito,
+      });
+    }
+
+    if (filter.periodo) {
+      query.andWhere('credito.periodo = :periodo', {
+        periodo: filter.periodo,
+      });
+    }
+
+    if (filter.estadoCarton) {
+      query.andWhere('carton.estado = :estadoCarton', {
+        estadoCarton: filter.estadoCarton,
+      });
+    }
+
+    if (filter.fechaVencCuota) {
+      const fechaVencCuota = new Date(filter.fechaVencCuota)
+        .toISOString()
+        .split('T')[0];
+      query.andWhere('cuotas.fechaVencimiento = :fechaVencCuota', {
+        fechaVencCuota,
+      });
+    }
+
+    if (filter.fechaUltimoPago) {
+      const startOfMonth = new Date(filter.fechaUltimoPago);
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+
+      const endOfMonth = new Date(startOfMonth);
+      endOfMonth.setMonth(endOfMonth.getMonth() + 1);
+      endOfMonth.setDate(0);
+      endOfMonth.setHours(23, 59, 59, 999);
+      query.andWhere('cuotas.fechaPago BETWEEN :startOfMonth AND :endOfMonth', {
+        startOfMonth,
+        endOfMonth,
+      });
+    }
+
+    if (filter.searchTerm) {
+      query.andWhere(
+        '(cliente.nombre LIKE :searchTerm OR cliente.apellido LIKE :searchTerm OR cliente.dni LIKE :searchTerm OR venta.comprobante LIKE :searchTerm OR productos.nombre LIKE :searchTerm OR domicilios.direccion LIKE :searchTerm OR domicilios.barrio LIKE :searchTerm OR domicilios.localidad LIKE :searchTerm OR telefonos.telefono LIKE :searchTerm)',
+        {
+          searchTerm: `%${filter.searchTerm}%`,
         },
-        cuotas: true,
-      },
-    });
+      );
+    }
+
+    if (filter.mostrarEliminados) {
+      query.withDeleted();
+    }
+
+    query.skip((page - 1) * limit).take(limit);
+
+    return await query.getManyAndCount();
   }
 
   async findOne(id: number) {

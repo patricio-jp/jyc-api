@@ -6,12 +6,14 @@ import {
   Entity,
   ManyToOne,
   OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
   RelationId,
   UpdateDateColumn,
 } from 'typeorm';
 import { Venta } from '../operaciones/ventas.entity';
 import { Cuota, EstadoCuota } from '../cuotas/cuotas.entity';
+import { Carton } from '../cartones/carton.entity';
 
 export enum EstadoCredito {
   Pendiente,
@@ -75,6 +77,11 @@ export class Credito extends BaseEntity {
     default: EstadoCredito.Pendiente,
   })
   estado: EstadoCredito;
+
+  @OneToOne(() => Carton, (carton) => carton.credito, {
+    cascade: true,
+  })
+  carton: Carton;
 
   @OneToMany(() => Cuota, (cuota) => cuota.credito, {
     cascade: true,

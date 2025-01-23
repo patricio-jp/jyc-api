@@ -3,7 +3,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import * as fs from 'fs';
 import { Credito, Periodo } from 'src/entities/creditos/creditos.entity';
 import { Cuota, EstadoCuota } from 'src/entities/cuotas/cuotas.entity';
-import { CondicionOperacion } from 'src/entities/operaciones/operaciones.entity';
+import {
+  CondicionOperacion,
+  EstadoOperacion,
+} from 'src/entities/operaciones/operaciones.entity';
 import { CreateVentaDTO } from 'src/entities/operaciones/ventas.dto';
 import { DetalleVenta, Venta } from 'src/entities/operaciones/ventas.entity';
 import { Repository } from 'typeorm';
@@ -13,14 +16,28 @@ import * as path from 'path'; */
 import { Producto } from 'src/entities/productos/productos.entity';
 import { Cliente } from 'src/entities/clientes/clientes.entity';
 import { FunctionsService } from 'src/helpers/functions/functions.service';
+import { Carton, EstadoCarton } from 'src/entities/cartones/carton.entity';
+import { GrupoCartones } from 'src/entities/cartones/grupoCartones.entity';
+
+interface VentasFilter {
+  cliente?: string;
+  fecha?: Date | string;
+  estado?: EstadoOperacion;
+  condicion?: CondicionOperacion;
+  productos?: string;
+  searchTerm?: string;
+  mostrarEliminados?: boolean;
+}
 
 @Injectable()
 export class VentasService {
   constructor(
     @InjectRepository(Venta)
     private ventasRepository: Repository<Venta>,
-    /* @InjectRepository(Inventario)
-    private inventarioRepository: Repository<Inventario>, */
+    @InjectRepository(GrupoCartones)
+    private grupoCartonesRepository: Repository<GrupoCartones>,
+    @InjectRepository(Carton)
+    private cartonesRepository: Repository<Carton>,
     @InjectRepository(Producto)
     private productosRepository: Repository<Producto>,
     @InjectRepository(Cliente)
@@ -197,6 +214,27 @@ export class VentasService {
         }
 
         nuevaVenta.financiacion = [nuevaFinanciacion];
+
+        // Crear cartón
+        const carton = new Carton();
+        carton.estado = EstadoCarton.Pendiente;
+        carton.fechaCarton = new Date();
+
+        if (financiacion.id_grupoCartones) {
+          carton.grupoCartones = await this.grupoCartonesRepository.findOne({
+            where: { id: financiacion.id_grupoCartones },
+          });
+        } else {
+          const nuevoGrupoCartones = new GrupoCartones();
+          if (financiacion.alias_grupoCartones) {
+            nuevoGrupoCartones.alias = financiacion.alias_grupoCartones;
+          }
+          await this.grupoCartonesRepository.save(nuevoGrupoCartones);
+          carton.grupoCartones = nuevoGrupoCartones;
+        }
+
+        await this.cartonesRepository.save(carton);
+        nuevaFinanciacion.carton = carton;
       }
 
       return await this.ventasRepository.save(nuevaVenta);
@@ -205,8 +243,73 @@ export class VentasService {
     }
   }
 
-  async findAll(): Promise<[Venta[], number]> {
-    return await this.ventasRepository.findAndCount();
+  async findAll(
+    page: number,
+    limit: number,
+    filter: VentasFilter,
+  ): Promise<[Venta[], number]> {
+    const query = this.ventasRepository.createQueryBuilder('venta');
+    query.leftJoinAndSelect('venta.cliente', 'cliente');
+    query.leftJoinAndSelect('cliente.domicilios', 'domicilios');
+    query.leftJoinAndSelect('venta.productos', 'detalleVenta');
+    query.leftJoinAndSelect('detalleVenta.producto', 'producto');
+    query.leftJoinAndSelect('venta.financiacion', 'credito');
+    query.leftJoinAndSelect('credito.cuotas', 'cuota');
+
+    if (filter.searchTerm) {
+      query.andWhere('(venta.comprobante LIKE :search)', {
+        search: `%${filter.searchTerm}%`,
+      });
+    }
+
+    if (filter.cliente) {
+      query.andWhere(
+        '(cliente.id LIKE :cliente OR cliente.dni LIKE :cliente OR cliente.nombre LIKE :cliente OR cliente.apellido LIKE :cliente OR domicilios.direccion LIKE :cliente OR domicilios.barrio LIKE :cliente OR domicilios.localidad LIKE :cliente)',
+        { cliente: `%${filter.cliente}%` },
+      );
+    }
+
+    if (filter.fecha) {
+      const startOfMonth = new Date(filter.fecha);
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+
+      const endOfMonth = new Date(startOfMonth);
+      endOfMonth.setMonth(endOfMonth.getMonth() + 1);
+      endOfMonth.setDate(0);
+      endOfMonth.setHours(23, 59, 59, 999);
+
+      query.andWhere('(venta.fecha BETWEEN :startOfMonth AND :endOfMonth)', {
+        startOfMonth,
+        endOfMonth,
+      });
+    }
+
+    if (filter.estado) {
+      query.andWhere('(venta.estado = :estado)', { estado: filter.estado });
+    }
+
+    if (filter.condicion) {
+      const condicion = filter.condicion.replace('_', ' ');
+      query.andWhere('(venta.condicion = :condicion)', {
+        condicion: condicion,
+      });
+    }
+
+    if (filter.productos) {
+      query.andWhere(
+        'venta.id IN (SELECT ventas.id FROM ventas INNER JOIN detalle_ventas ON ventas.id = detalle_ventas.ventaId INNER JOIN productos ON detalle_ventas.productoId = productos.id WHERE productos.nombre LIKE :productos OR productos.codigo LIKE :productos)',
+        { productos: `%${filter.productos}%` },
+      );
+    }
+
+    if (filter.mostrarEliminados) {
+      query.withDeleted();
+    }
+
+    query.skip((page - 1) * limit).take(limit);
+
+    return await query.getManyAndCount();
   }
 
   async findOne(id: number) {

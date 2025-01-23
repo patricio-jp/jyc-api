@@ -12,6 +12,15 @@ import { TelefonoCliente } from 'src/entities/telefonos/telefonos.entity';
 import { Usuario } from 'src/entities/usuarios/usuarios.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 
+interface ClientesFilter {
+  searchTerm?: string; // Usado para campos simples de la entidad
+  domicilio?: string;
+  estado?: EstadoCliente;
+  zona?: string;
+  apariciones?: string;
+  mostrarEliminados?: boolean;
+}
+
 @Injectable()
 export class ClientesService {
   constructor(
@@ -96,8 +105,53 @@ export class ClientesService {
     }
   }
 
-  async findAll(): Promise<[Cliente[], number]> {
-    return await this.clientesRepository.findAndCount();
+  async findAll(
+    page: number,
+    limit: number,
+    filter: ClientesFilter,
+  ): Promise<[Cliente[], number]> {
+    const query = this.clientesRepository.createQueryBuilder('cliente');
+    query.leftJoinAndSelect('cliente.domicilios', 'domicilios');
+    query.leftJoinAndSelect('cliente.telefonos', 'telefonos');
+    query.leftJoinAndSelect('cliente.ventas', 'ventas');
+    query.leftJoinAndSelect('ventas.financiacion', 'creditos');
+    query.leftJoinAndSelect('cliente.zona', 'zona');
+
+    if (filter.searchTerm) {
+      query.andWhere(
+        '(cliente.id LIKE :cliente OR cliente.dni LIKE :cliente OR cliente.nombre LIKE :cliente OR cliente.apellido LIKE :cliente)',
+        { cliente: `%${filter.searchTerm}%` },
+      );
+    }
+
+    if (filter.domicilio) {
+      query.andWhere(
+        '(domicilios.direccion LIKE :cliente OR domicilios.barrio LIKE :cliente OR domicilios.localidad LIKE :cliente)',
+        { cliente: `%${filter.domicilio}%` },
+      );
+    }
+
+    if (filter.estado) {
+      query.andWhere('(cliente.estado = :estado)', { estado: filter.estado });
+    }
+
+    if (filter.zona) {
+      query.andWhere('(zona.nombre LIKE :zona)', { zona: `%${filter.zona}%` });
+    }
+
+    if (filter.apariciones) {
+      query.andWhere('(ventas.comprobante LIKE :aparicion)', {
+        aparicion: `%${filter.apariciones}%`,
+      });
+    }
+
+    if (filter.mostrarEliminados) {
+      query.withDeleted();
+    }
+
+    query.skip((page - 1) * limit).take(limit);
+
+    return await query.getManyAndCount();
   }
 
   async findOne(id: number) {

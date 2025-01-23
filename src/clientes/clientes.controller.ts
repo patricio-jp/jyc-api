@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Req,
 } from '@nestjs/common';
 import { ClientesService } from './clientes.service';
 import {
@@ -15,6 +16,7 @@ import {
 import { ApiTags } from '@nestjs/swagger';
 import { Roles } from 'src/helpers/roleDetector';
 import { Rol } from 'src/entities/usuarios/usuarios.entity';
+import { Request } from 'express';
 
 @ApiTags('Clientes')
 @Controller('clientes')
@@ -28,8 +30,13 @@ export class ClientesController {
   }
 
   @Get()
-  async findAll() {
-    const [data, count] = await this.clientesService.findAll();
+  async findAll(@Req() req: Request) {
+    const { page = 1, pageSize = 10, ...filters } = req.query;
+    const [data, count] = await this.clientesService.findAll(
+      Number(page),
+      Number(pageSize),
+      filters,
+    );
     return { data, count };
   }
 
