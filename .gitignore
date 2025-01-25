@@ -49,6 +49,9 @@ uploads
 .temp
 .tmp
 
+# Docker compose file
+docker-compose.yml
+
 #Backups directory
 backups
 
