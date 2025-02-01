@@ -12,6 +12,7 @@ import { CreditosService } from './creditos.service';
 import { ApiTags } from '@nestjs/swagger';
 import { CargarPagoDTO } from 'src/entities/creditos/creditos.dto';
 import { EstadoCredito } from 'src/entities/creditos/creditos.entity';
+import { CambiarEstadoCartonDTO } from 'src/entities/cartones/cartones.dto';
 import { Roles } from 'src/helpers/roleDetector';
 import { Rol } from 'src/entities/usuarios/usuarios.entity';
 import { Request } from 'express';
@@ -58,6 +59,15 @@ export class CreditosController {
   @Roles(Rol.Administrador, Rol.Supervisor, Rol.Cobrador)
   async cargarPago(@Param('id') id: string, @Body() pago: CargarPagoDTO) {
     return this.creditosService.cargarPago(+id, pago);
+  }
+
+  @Patch(':id/estadoCarton')
+  @Roles(Rol.Administrador, Rol.Supervisor)
+  async cambiarEstadoCarton(
+    @Param('id') id: string,
+    @Body() estado: CambiarEstadoCartonDTO,
+  ) {
+    return this.creditosService.cambiarEstadoCarton(+id, estado);
   }
 
   @Patch(':id/estado')

@@ -21,6 +21,7 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
 import { LoggingInterceptor } from './helpers/interceptors/logger.interceptor';
 import { BackupDatabaseModule } from './database/backup.module';
 import { FileController } from './helpers/controllers/files.controller';
+import { CartonesModule } from './cartones/cartones.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { FileController } from './helpers/controllers/files.controller';
     TypeOrmModule.forFeature([Cliente, Producto]),
     ProductosModule,
     AuthModule,
+    CartonesModule,
   ],
   controllers: [AppController, FileController],
   providers: [

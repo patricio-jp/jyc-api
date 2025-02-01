@@ -15,6 +15,11 @@ enum ProductModifications {
   Costo,
 }
 
+interface ProductosFilter {
+  searchTerm?: string;
+  mostrarEliminados?: boolean;
+}
+
 @Injectable()
 export class ProductosService {
   constructor(
@@ -85,8 +90,37 @@ export class ProductosService {
     }
   }
 
-  async findAll(): Promise<[Producto[], number]> {
-    return await this.productosRepository.findAndCount();
+  async findAll(
+    page: number,
+    limit: number,
+    filter: ProductosFilter,
+  ): Promise<[Producto[], number]> {
+    const query = this.productosRepository.createQueryBuilder('producto');
+    query.leftJoinAndSelect(
+      'producto.costos',
+      'costos',
+      'costos.fechaFin IS NULL',
+    );
+    query.leftJoinAndSelect(
+      'producto.precios',
+      'precios',
+      'precios.fechaFin IS NULL',
+    );
+
+    if (filter.searchTerm) {
+      query.andWhere(
+        '(producto.codigo LIKE :searchTerm OR producto.nombre LIKE :searchTerm)',
+        { searchTerm: `%${filter.searchTerm}%` },
+      );
+    }
+
+    if (filter.mostrarEliminados) {
+      query.withDeleted();
+    }
+
+    if (page > 0 && limit > 0) query.skip((page - 1) * limit).take(limit);
+
+    return await query.getManyAndCount();
   }
 
   async findOne(id: number) {

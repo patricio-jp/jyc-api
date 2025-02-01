@@ -1,4 +1,5 @@
 import {
+  BaseEntity,
   Column,
   CreateDateColumn,
   DeleteDateColumn,
@@ -10,7 +11,7 @@ import {
 import { Carton } from './carton.entity';
 
 @Entity('grupo_cartones')
-export class GrupoCartones {
+export class GrupoCartones extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 

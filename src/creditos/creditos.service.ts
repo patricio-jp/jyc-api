@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { EstadoCarton } from 'src/entities/cartones/carton.entity';
+import { Carton, EstadoCarton } from 'src/entities/cartones/carton.entity';
+import { CambiarEstadoCartonDTO } from 'src/entities/cartones/cartones.dto';
 import { CargarPagoDTO } from 'src/entities/creditos/creditos.dto';
 import {
   Credito,
@@ -26,6 +27,8 @@ export class CreditosService {
   constructor(
     @InjectRepository(Credito)
     private creditosRepository: Repository<Credito>,
+    @InjectRepository(Carton)
+    private cartonesRepository: Repository<Carton>,
   ) {}
 
   async findAll(page: number, limit: number, filter: CreditosFilter) {
@@ -34,6 +37,15 @@ export class CreditosService {
     query.leftJoinAndSelect('credito.cuotas', 'cuotas');
     query.leftJoinAndSelect('credito.carton', 'carton');
     query.leftJoinAndSelect('carton.grupoCartones', 'grupoCartones');
+    query.leftJoinAndSelect('grupoCartones.cartones', 'cartonesEnGrupo');
+    query.leftJoinAndSelect(
+      'cartonesEnGrupo.credito',
+      'creditoCartonesEnGrupo',
+    );
+    query.leftJoinAndSelect(
+      'creditoCartonesEnGrupo.venta',
+      'ventaCartonesEnGrupo',
+    );
     query.leftJoinAndSelect('venta.productos', 'detalle');
     query.leftJoinAndSelect('detalle.producto', 'productos');
     query.leftJoinAndSelect('venta.cliente', 'cliente');
@@ -95,7 +107,7 @@ export class CreditosService {
       query.withDeleted();
     }
 
-    query.skip((page - 1) * limit).take(limit);
+    if (limit > 0 && page > 0) query.skip((page - 1) * limit).take(limit);
 
     return await query.getManyAndCount();
   }
@@ -187,6 +199,44 @@ export class CreditosService {
         return await credito.anularCredito();
       } else {
         credito.estado = estado;
+        return await credito.save();
+      }
+    } catch (error) {
+      return `Error: ${error}`;
+    }
+  }
+
+  async cambiarEstadoCarton(id: number, estadoCarton: CambiarEstadoCartonDTO) {
+    try {
+      const credito = await this.creditosRepository.findOne({
+        where: { id },
+        relations: {
+          carton: {
+            grupoCartones: {
+              cartones: true,
+            },
+          },
+          venta: true,
+        },
+      });
+
+      if (!credito) return 'No existe el crédito con el ID ingresado';
+
+      //return credito;
+      const { estado, fechaCarton, actualizarGrupo } = estadoCarton;
+
+      if (actualizarGrupo) {
+        const grupoCartones = credito.carton.grupoCartones;
+        grupoCartones.cartones.forEach((carton) => {
+          carton.estado = estado;
+          carton.fechaCarton = fechaCarton ? fechaCarton : new Date();
+        });
+
+        return await this.cartonesRepository.save(grupoCartones.cartones);
+      } else {
+        credito.carton.estado = estado;
+        credito.carton.fechaCarton = fechaCarton ? fechaCarton : new Date();
+
         return await credito.save();
       }
     } catch (error) {

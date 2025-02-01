@@ -149,7 +149,7 @@ export class ClientesService {
       query.withDeleted();
     }
 
-    query.skip((page - 1) * limit).take(limit);
+    if (limit > 0 && page > 0) query.skip((page - 1) * limit).take(limit);
 
     return await query.getManyAndCount();
   }
