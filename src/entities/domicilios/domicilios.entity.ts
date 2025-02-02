@@ -16,14 +16,14 @@ export abstract class Domicilio extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
-  direccion: string;
+  @Column({ nullable: true })
+  direccion?: string;
 
-  @Column()
-  barrio: string;
+  @Column({ nullable: true })
+  barrio?: string;
 
-  @Column()
-  localidad: string;
+  @Column({ nullable: true })
+  localidad?: string;
 
   @CreateDateColumn()
   createdAt: Date;
