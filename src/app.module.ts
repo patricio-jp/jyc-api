@@ -19,7 +19,6 @@ import { AuthGuard } from './auth/auth.guard';
 import { JwtModule } from '@nestjs/jwt';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { LoggingInterceptor } from './helpers/interceptors/logger.interceptor';
-import { BackupDatabaseModule } from './database/backup.module';
 import { FileController } from './helpers/controllers/files.controller';
 import { CartonesModule } from './cartones/cartones.module';
 
@@ -34,7 +33,6 @@ import { CartonesModule } from './cartones/cartones.module';
       signOptions: { expiresIn: '15m' },
     }),
     DatabaseModule,
-    BackupDatabaseModule,
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, 'uploads'),
     }),
