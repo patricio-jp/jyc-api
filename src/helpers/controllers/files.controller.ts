@@ -9,7 +9,7 @@ export class FileController {
     @Param('filename') filename: string,
     @Param('folder') folder: string,
   ): StreamableFile {
-    const filePath = join(process.cwd(), 'uploads', folder, filename);
+    const filePath = join(process.env.UPLOADS_FOLDER, folder, filename);
     //console.log(filePath);
     const file = createReadStream(filePath);
     return new StreamableFile(file);

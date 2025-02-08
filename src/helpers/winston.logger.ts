@@ -24,7 +24,7 @@ export class WinstonLogger implements LoggerService {
   private readonly logger: winston.Logger;
 
   constructor() {
-    const logDir = path.join(process.cwd(), 'logs');
+    const logDir = path.join(process.env.LOGS_FOLDER);
 
     if (!fs.existsSync(logDir)) {
       fs.mkdirSync(logDir);
