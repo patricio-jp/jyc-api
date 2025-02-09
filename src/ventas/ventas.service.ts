@@ -27,6 +27,7 @@ interface VentasFilter {
   productos?: string;
   searchTerm?: string;
   mostrarEliminados?: boolean;
+  counterQuery?: boolean;
 }
 
 @Injectable()
@@ -249,12 +250,23 @@ export class VentasService {
     filter: VentasFilter,
   ): Promise<[Venta[], number]> {
     const query = this.ventasRepository.createQueryBuilder('venta');
-    query.leftJoinAndSelect('venta.cliente', 'cliente');
-    query.leftJoinAndSelect('cliente.domicilios', 'domicilios');
-    query.leftJoinAndSelect('venta.productos', 'detalleVenta');
-    query.leftJoinAndSelect('detalleVenta.producto', 'producto');
-    query.leftJoinAndSelect('venta.financiacion', 'credito');
-    query.leftJoinAndSelect('credito.cuotas', 'cuota');
+    const queryAux = this.ventasRepository.createQueryBuilder('venta');
+    if (!filter.counterQuery) {
+      query.leftJoinAndSelect('venta.cliente', 'cliente');
+      query.leftJoinAndSelect('cliente.domicilios', 'domicilios');
+      query.leftJoinAndSelect('venta.productos', 'detalleVenta');
+      query.leftJoinAndSelect('detalleVenta.producto', 'producto');
+      query.leftJoinAndSelect('venta.financiacion', 'credito');
+      query.leftJoinAndSelect('credito.cuotas', 'cuota');
+      if (limit > 0 && page > 0) query.skip((page - 1) * limit).take(limit);
+    } else {
+      query
+        .select('venta.estado, COUNT(venta.id) as count')
+        .groupBy('venta.estado');
+      queryAux
+        .select('venta.condicion, COUNT(venta.id) as count')
+        .groupBy('venta.condicion');
+    }
 
     if (filter.searchTerm) {
       query.andWhere('(venta.comprobante LIKE :search)', {
@@ -307,8 +319,16 @@ export class VentasService {
       query.withDeleted();
     }
 
-    if (limit > 0 && page > 0) query.skip((page - 1) * limit).take(limit);
-
+    if (filter.counterQuery) {
+      const dataEstados = await query.execute();
+      const dataCondicion = await queryAux.execute();
+      const data = [...dataEstados, ...dataCondicion];
+      let count = 0;
+      dataEstados.forEach((element) => {
+        count += Number(element.count);
+      });
+      return [data, count];
+    }
     return await query.getManyAndCount();
   }
 

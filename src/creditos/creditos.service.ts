@@ -20,6 +20,7 @@ interface CreditosFilter {
   fechaUltimoPago?: Date;
   searchTerm?: string;
   mostrarEliminados?: boolean;
+  counterQuery?: boolean;
 }
 
 @Injectable()
@@ -33,24 +34,39 @@ export class CreditosService {
 
   async findAll(page: number, limit: number, filter: CreditosFilter) {
     const query = this.creditosRepository.createQueryBuilder('credito');
-    query.leftJoinAndSelect('credito.venta', 'venta');
-    query.leftJoinAndSelect('credito.cuotas', 'cuotas');
+    const queryAux1 = this.creditosRepository.createQueryBuilder('credito');
+    const queryAux2 = this.creditosRepository.createQueryBuilder('credito');
     query.leftJoinAndSelect('credito.carton', 'carton');
-    query.leftJoinAndSelect('carton.grupoCartones', 'grupoCartones');
-    query.leftJoinAndSelect('grupoCartones.cartones', 'cartonesEnGrupo');
-    query.leftJoinAndSelect(
-      'cartonesEnGrupo.credito',
-      'creditoCartonesEnGrupo',
-    );
-    query.leftJoinAndSelect(
-      'creditoCartonesEnGrupo.venta',
-      'ventaCartonesEnGrupo',
-    );
-    query.leftJoinAndSelect('venta.productos', 'detalle');
-    query.leftJoinAndSelect('detalle.producto', 'productos');
-    query.leftJoinAndSelect('venta.cliente', 'cliente');
-    query.leftJoinAndSelect('cliente.domicilios', 'domicilios');
-    query.leftJoinAndSelect('cliente.telefonos', 'telefonos');
+    if (!filter.counterQuery) {
+      query.leftJoinAndSelect('credito.venta', 'venta');
+      query.leftJoinAndSelect('credito.cuotas', 'cuotas');
+      query.leftJoinAndSelect('carton.grupoCartones', 'grupoCartones');
+      query.leftJoinAndSelect('grupoCartones.cartones', 'cartonesEnGrupo');
+      query.leftJoinAndSelect(
+        'cartonesEnGrupo.credito',
+        'creditoCartonesEnGrupo',
+      );
+      query.leftJoinAndSelect(
+        'creditoCartonesEnGrupo.venta',
+        'ventaCartonesEnGrupo',
+      );
+      query.leftJoinAndSelect('venta.productos', 'detalle');
+      query.leftJoinAndSelect('detalle.producto', 'productos');
+      query.leftJoinAndSelect('venta.cliente', 'cliente');
+      query.leftJoinAndSelect('cliente.domicilios', 'domicilios');
+      query.leftJoinAndSelect('cliente.telefonos', 'telefonos');
+      if (limit > 0 && page > 0) query.skip((page - 1) * limit).take(limit);
+    } else {
+      query
+        .select('carton.estado as estadoCarton, COUNT(credito.id) as count')
+        .groupBy('carton.estado');
+      queryAux2
+        .select('credito.estado as estadoCredito, COUNT(credito.id) as count')
+        .groupBy('credito.estado');
+      queryAux1
+        .select('credito.periodo, COUNT(credito.id) as count')
+        .groupBy('credito.periodo');
+    }
 
     if (filter.estadoCredito) {
       query.andWhere('credito.estado = :estadoCredito', {
@@ -107,8 +123,21 @@ export class CreditosService {
       query.withDeleted();
     }
 
-    if (limit > 0 && page > 0) query.skip((page - 1) * limit).take(limit);
-
+    if (filter.counterQuery) {
+      const dataEstadoCredito = await queryAux1.execute();
+      const dataPeriodoCredito = await queryAux2.execute();
+      const dataEstadosCartones = await query.execute();
+      const data = [
+        ...dataEstadoCredito,
+        ...dataPeriodoCredito,
+        ...dataEstadosCartones,
+      ];
+      let count = 0;
+      dataEstadoCredito.forEach((element) => {
+        count += Number(element.count);
+      });
+      return [data, count];
+    }
     return await query.getManyAndCount();
   }
 

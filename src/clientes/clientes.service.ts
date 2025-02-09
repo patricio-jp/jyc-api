@@ -13,6 +13,7 @@ import { Usuario } from 'src/entities/usuarios/usuarios.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 
 interface ClientesFilter {
+  counterQuery?: boolean;
   searchTerm?: string; // Usado para campos simples de la entidad
   domicilio?: string;
   estado?: EstadoCliente;
@@ -111,15 +112,22 @@ export class ClientesService {
     filter: ClientesFilter,
   ): Promise<[Cliente[], number]> {
     const query = this.clientesRepository.createQueryBuilder('cliente');
-    query.leftJoinAndSelect('cliente.domicilios', 'domicilios');
-    query.leftJoinAndSelect('cliente.telefonos', 'telefonos');
-    query.leftJoinAndSelect('cliente.ventas', 'ventas');
-    query.leftJoinAndSelect('ventas.financiacion', 'creditos');
-    query.leftJoinAndSelect('cliente.zona', 'zona');
+    if (!filter.counterQuery) {
+      query.leftJoinAndSelect('cliente.domicilios', 'domicilios');
+      query.leftJoinAndSelect('cliente.telefonos', 'telefonos');
+      query.leftJoinAndSelect('cliente.ventas', 'ventas');
+      query.leftJoinAndSelect('ventas.financiacion', 'creditos');
+      query.leftJoinAndSelect('cliente.zona', 'zona');
+      if (limit > 0 && page > 0) query.skip((page - 1) * limit).take(limit);
+    } else {
+      query
+        .select('cliente.estado, COUNT(cliente.id) as count')
+        .groupBy('cliente.estado');
+    }
 
     if (filter.searchTerm) {
       query.andWhere(
-        '(cliente.id LIKE :cliente OR cliente.dni LIKE :cliente OR cliente.nombre LIKE :cliente OR cliente.apellido LIKE :cliente)',
+        '(cliente.id LIKE :cliente OR cliente.dni LIKE :cliente OR cliente.nombre LIKE :cliente OR cliente.apellido LIKE :cliente OR domicilios.direccion LIKE :cliente OR domicilios.barrio LIKE :cliente OR domicilios.localidad LIKE :cliente)',
         { cliente: `%${filter.searchTerm}%` },
       );
     }
@@ -149,7 +157,14 @@ export class ClientesService {
       query.withDeleted();
     }
 
-    if (limit > 0 && page > 0) query.skip((page - 1) * limit).take(limit);
+    if (filter.counterQuery) {
+      const data = await query.execute();
+      let count = 0;
+      data.forEach((element) => {
+        count += Number(element.count);
+      });
+      return [data, count];
+    }
 
     return await query.getManyAndCount();
   }
@@ -160,8 +175,13 @@ export class ClientesService {
         id,
       },
       relations: {
-        ventas: true,
+        ventas: {
+          productos: {
+            producto: true,
+          },
+        },
       },
+      withDeleted: true,
     });
   }
 
