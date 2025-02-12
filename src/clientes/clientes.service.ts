@@ -179,6 +179,12 @@ export class ClientesService {
           productos: {
             producto: true,
           },
+          financiacion: {
+            cuotas: true,
+            carton: {
+              grupoCartones: true,
+            },
+          },
         },
       },
       withDeleted: true,

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { Usuario } from 'src/entities/usuarios/usuarios.entity';
+import { Rol, Usuario } from 'src/entities/usuarios/usuarios.entity';
 import {
   CreateUsuarioDTO,
   UpdateUsuarioDTO,
@@ -11,6 +11,14 @@ import { CreateDomicilioDTO } from 'src/entities/domicilios/domicilios.dto';
 import { DomicilioUsuario } from 'src/entities/domicilios/domicilios.entity';
 import { CreateTelefonoDTO } from 'src/entities/telefonos/telefonos.dto';
 import { TelefonoUsuario } from 'src/entities/telefonos/telefonos.entity';
+
+interface UsuariosFilter {
+  counterQuery?: boolean;
+  searchTerm?: string; // Usado para campos simples de la entidad
+  domicilio?: string;
+  rol?: Rol;
+  mostrarEliminados?: boolean;
+}
 
 @Injectable()
 export class UsuariosService {
@@ -74,12 +82,98 @@ export class UsuariosService {
     }
   }
 
-  async findAll(): Promise<[Usuario[], number]> {
-    return this.usuariosRepository.findAndCount();
+  async findAll(
+    page: number,
+    limit: number,
+    filter: UsuariosFilter,
+  ): Promise<[Usuario[], number]> {
+    const query = this.usuariosRepository.createQueryBuilder('usuario');
+    if (!filter.counterQuery) {
+      query.leftJoinAndSelect('usuario.domicilios', 'domicilios');
+      query.leftJoinAndSelect('usuario.telefonos', 'telefonos');
+      if (limit > 0 && page > 0) query.skip((page - 1) * limit).take(limit);
+    } else {
+      query
+        .select('usuario.rol, COUNT(usuario.id) as count')
+        .groupBy('usuario.rol');
+    }
+
+    if (filter.searchTerm) {
+      query.andWhere(
+        '(usuario.id LIKE :usuario OR usuario.dni LIKE :usuario OR usuario.nombre LIKE :usuario OR usuario.apellido LIKE :usuario OR domicilios.direccion LIKE :usuario OR domicilios.barrio LIKE :usuario OR domicilios.localidad LIKE :usuario)',
+        { usuario: `%${filter.searchTerm}%` },
+      );
+    }
+
+    if (filter.domicilio) {
+      query.andWhere(
+        '(domicilios.direccion LIKE :usuario OR domicilios.barrio LIKE :usuario OR domicilios.localidad LIKE :usuario)',
+        { usuario: `%${filter.domicilio}%` },
+      );
+    }
+
+    if (filter.rol) {
+      query.andWhere('(usuario.rol = :rol)', { rol: filter.rol });
+    }
+
+    if (filter.mostrarEliminados) {
+      query.withDeleted();
+    }
+
+    if (filter.counterQuery) {
+      const data = await query.execute();
+      let count = 0;
+      data.forEach((element) => {
+        count += Number(element.count);
+      });
+      return [data, count];
+    }
+
+    return await query.getManyAndCount();
   }
 
   async findOne(id: number) {
-    return this.usuariosRepository.findOneBy({ id });
+    const user = await this.usuariosRepository.findOne({
+      where: { id },
+      relations: {
+        domicilios: true,
+        telefonos: true,
+        clientesAsociados: {
+          domicilios: true,
+          telefonos: true,
+          zona: true,
+          ventas: {
+            productos: {
+              producto: true,
+            },
+            financiacion: {
+              carton: {
+                grupoCartones: true,
+              },
+            },
+          },
+        },
+        clientesACobrar: {
+          domicilios: true,
+          telefonos: true,
+          zona: true,
+          ventas: {
+            productos: {
+              producto: true,
+            },
+            financiacion: {
+              carton: {
+                grupoCartones: true,
+              },
+            },
+          },
+        },
+      },
+      withDeleted: true,
+    });
+
+    user.password = undefined;
+    return user;
   }
 
   async update(id: number, updateUsuarioDto: UpdateUsuarioDTO) {

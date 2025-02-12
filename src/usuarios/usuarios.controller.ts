@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Req,
 } from '@nestjs/common';
 import { UsuariosService } from './usuarios.service';
 import {
@@ -16,6 +17,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { Roles } from 'src/helpers/roleDetector';
 import { Rol } from 'src/entities/usuarios/usuarios.entity';
 import { SkipAuth } from 'src/helpers/allowPublicAccess';
+import { Request } from 'express';
 
 @ApiTags('Usuarios')
 @Controller('usuarios')
@@ -31,8 +33,13 @@ export class UsuariosController {
 
   @Get()
   @Roles(Rol.Administrador, Rol.Supervisor)
-  async findAll() {
-    const [data, count] = await this.usuariosService.findAll();
+  async findAll(@Req() req: Request) {
+    const { page = 1, pageSize = 10, ...filters } = req.query;
+    const [data, count] = await this.usuariosService.findAll(
+      Number(page),
+      Number(pageSize),
+      filters,
+    );
     return { data, count };
   }
 
