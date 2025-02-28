@@ -1,6 +1,5 @@
 import { ApiProperty, PartialType } from '@nestjs/swagger';
 import {
-  ArrayMinSize,
   IsArray,
   IsDecimal,
   IsEnum,
@@ -12,8 +11,14 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { EstadoCliente } from './clientes.entity';
-import { CreateDomicilioDTO } from '../domicilios/domicilios.dto';
-import { CreateTelefonoDTO } from '../telefonos/telefonos.dto';
+import {
+  CreateDomicilioDTO,
+  UpdateDomicilioDTO,
+} from '../domicilios/domicilios.dto';
+import {
+  CreateTelefonoDTO,
+  UpdateTelefonoDTO,
+} from '../telefonos/telefonos.dto';
 import { CreateZonaDTO } from '../zonas/zonas.dto';
 
 export class CreateClienteDTO {
@@ -37,17 +42,15 @@ export class CreateClienteDTO {
 
   @IsOptional()
   @IsArray()
-  @ArrayMinSize(1)
   @ValidateNested()
   @ApiProperty()
-  domicilios?: CreateDomicilioDTO[];
+  domicilios?: CreateDomicilioDTO[] | UpdateDomicilioDTO[];
 
   @IsOptional()
   @IsArray()
-  @ArrayMinSize(1)
   @ValidateNested()
   @ApiProperty()
-  telefonos?: CreateTelefonoDTO[];
+  telefonos?: CreateTelefonoDTO[] | UpdateTelefonoDTO[];
 
   @IsOptional()
   @IsInt()

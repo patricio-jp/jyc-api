@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   Req,
+  Put,
 } from '@nestjs/common';
 import { ClientesService } from './clientes.service';
 import {
@@ -45,7 +46,7 @@ export class ClientesController {
     return this.clientesService.findOne(+id);
   }
 
-  @Patch(':id')
+  @Put(':id')
   @Roles(Rol.Administrador, Rol.Supervisor)
   async update(
     @Param('id') id: string,

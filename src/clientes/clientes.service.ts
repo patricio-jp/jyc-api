@@ -5,10 +5,22 @@ import {
 } from 'src/entities/clientes/clientes.dto';
 import { Repository } from 'typeorm';
 import { Cliente, EstadoCliente } from 'src/entities/clientes/clientes.entity';
-import { CreateDomicilioDTO } from 'src/entities/domicilios/domicilios.dto';
-import { DomicilioCliente } from 'src/entities/domicilios/domicilios.entity';
-import { CreateTelefonoDTO } from 'src/entities/telefonos/telefonos.dto';
-import { TelefonoCliente } from 'src/entities/telefonos/telefonos.entity';
+import {
+  CreateDomicilioDTO,
+  UpdateDomicilioDTO,
+} from 'src/entities/domicilios/domicilios.dto';
+import {
+  Domicilio,
+  DomicilioCliente,
+} from 'src/entities/domicilios/domicilios.entity';
+import {
+  CreateTelefonoDTO,
+  UpdateTelefonoDTO,
+} from 'src/entities/telefonos/telefonos.dto';
+import {
+  Telefono,
+  TelefonoCliente,
+} from 'src/entities/telefonos/telefonos.entity';
 import { Usuario } from 'src/entities/usuarios/usuarios.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 
@@ -215,31 +227,92 @@ export class ClientesService {
       if (nombre) cliente.nombre = nombre;
       cliente.apellido = apellido;
       if (dni) cliente.dni = dni;
-      cliente.fechaNacimiento = new Date(fechaNacimiento.valueOf());
+      if (fechaNacimiento)
+        cliente.fechaNacimiento = new Date(fechaNacimiento.valueOf());
       if (saldo) cliente.saldo = saldo;
       cliente.observaciones = observaciones;
       if (estado) cliente.estado = estado;
 
       if (domicilios) {
-        domicilios.map(async (domicilio: CreateDomicilioDTO) => {
-          const nuevoDom = new DomicilioCliente();
-          nuevoDom.direccion = domicilio.direccion;
-          nuevoDom.barrio = domicilio.barrio;
-          nuevoDom.localidad = domicilio.localidad;
-
-          cliente.domicilios = [...(cliente.domicilios || []), nuevoDom];
-          return;
-        });
+        const existingDomicilios = cliente.domicilios || [];
+        let domiciliosToRemove: Domicilio[];
+        if (domicilios.length === 0) {
+          domiciliosToRemove = existingDomicilios;
+        } else {
+          domiciliosToRemove = existingDomicilios.filter(
+            (existingDomicilio) =>
+              !domicilios.some(
+                (domicilio) =>
+                  'id' in domicilio && domicilio.id === existingDomicilio.id,
+              ),
+          );
+        }
+        await Promise.all(
+          domiciliosToRemove.map((domicilio) => domicilio.remove()),
+        );
+        const updatedDomicilios = await Promise.all(
+          domicilios.map(
+            async (domicilio: UpdateDomicilioDTO | CreateDomicilioDTO) => {
+              if ('id' in domicilio && domicilio.id) {
+                const existingDomicilio = existingDomicilios.find(
+                  (dom) => dom.id === domicilio.id,
+                );
+                if (existingDomicilio) {
+                  existingDomicilio.direccion = domicilio.direccion;
+                  existingDomicilio.barrio = domicilio.barrio;
+                  existingDomicilio.localidad = domicilio.localidad;
+                  return existingDomicilio;
+                }
+              } else {
+                const nuevoDom = new DomicilioCliente();
+                nuevoDom.direccion = domicilio.direccion;
+                nuevoDom.barrio = domicilio.barrio;
+                nuevoDom.localidad = domicilio.localidad;
+                return nuevoDom;
+              }
+            },
+          ),
+        );
+        cliente.domicilios = updatedDomicilios;
       }
 
       if (telefonos) {
-        telefonos.map(async (telefono: CreateTelefonoDTO) => {
-          const nuevoTel = new TelefonoCliente();
-          nuevoTel.telefono = telefono.telefono;
-
-          cliente.telefonos = [...(cliente.telefonos || []), nuevoTel];
-          return;
-        });
+        const existingTelefonos = cliente.telefonos || [];
+        let telefonosToRemove: Telefono[];
+        if (telefonos.length === 0) {
+          telefonosToRemove = existingTelefonos;
+        } else {
+          telefonosToRemove = existingTelefonos.filter(
+            (existingTel) =>
+              !telefonos.some(
+                (telefono) =>
+                  'id' in telefono && telefono.id === existingTel.id,
+              ),
+          );
+        }
+        await Promise.all(
+          telefonosToRemove.map((telefono) => telefono.remove()),
+        );
+        const updatedTelefonos = await Promise.all(
+          telefonos.map(
+            async (telefono: CreateTelefonoDTO | UpdateTelefonoDTO) => {
+              if ('id' in telefono && telefono.id) {
+                const existingTel = existingTelefonos.find(
+                  (tel) => tel.id === telefono.id,
+                );
+                if (existingTel) {
+                  existingTel.telefono = telefono.telefono;
+                  return existingTel;
+                }
+              } else {
+                const nuevoTel = new TelefonoCliente();
+                nuevoTel.telefono = telefono.telefono;
+                return nuevoTel;
+              }
+            },
+          ),
+        );
+        cliente.telefonos = updatedTelefonos;
       }
 
       if (id_vendedorAsociado) {

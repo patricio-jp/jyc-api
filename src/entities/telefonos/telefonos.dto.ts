@@ -1,5 +1,5 @@
-import { ApiProperty, PartialType } from '@nestjs/swagger';
-import { IsPhoneNumber } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsNumber, IsPhoneNumber } from 'class-validator';
 
 export class CreateTelefonoDTO {
   @IsPhoneNumber('AR')
@@ -7,4 +7,7 @@ export class CreateTelefonoDTO {
   telefono: string;
 }
 
-export class UpdateTelefonoDTO extends PartialType(CreateTelefonoDTO) {}
+export class UpdateTelefonoDTO extends CreateTelefonoDTO {
+  @IsNumber()
+  id: number;
+}

@@ -1,18 +1,24 @@
 import { ApiProperty, PartialType } from '@nestjs/swagger';
-import { IsString } from 'class-validator';
+import { IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class CreateDomicilioDTO {
+  @IsOptional()
   @IsString()
   @ApiProperty()
-  direccion: string;
+  direccion?: string;
 
+  @IsOptional()
   @IsString()
   @ApiProperty()
-  barrio: string;
+  barrio?: string;
 
+  @IsOptional()
   @IsString()
   @ApiProperty()
-  localidad: string;
+  localidad?: string;
 }
 
-export class UpdateDomicilioDTO extends PartialType(CreateDomicilioDTO) {}
+export class UpdateDomicilioDTO extends PartialType(CreateDomicilioDTO) {
+  @IsNumber()
+  id: number;
+}
