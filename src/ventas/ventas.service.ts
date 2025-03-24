@@ -7,7 +7,10 @@ import {
   CondicionOperacion,
   EstadoOperacion,
 } from 'src/entities/operaciones/operaciones.entity';
-import { CreateVentaDTO } from 'src/entities/operaciones/ventas.dto';
+import {
+  CreateVentaDTO,
+  UpdateVentaDTO,
+} from 'src/entities/operaciones/ventas.dto';
 import { DetalleVenta, Venta } from 'src/entities/operaciones/ventas.entity';
 import { Repository } from 'typeorm';
 /* import * as fs from 'fs';
@@ -18,6 +21,9 @@ import { Cliente } from 'src/entities/clientes/clientes.entity';
 import { FunctionsService } from 'src/helpers/functions/functions.service';
 import { Carton, EstadoCarton } from 'src/entities/cartones/carton.entity';
 import { GrupoCartones } from 'src/entities/cartones/grupoCartones.entity';
+import { CreateIngresoDTO } from 'src/entities/operaciones/ingresos.dto';
+import { IngresosService } from 'src/ingresos/ingresos.service';
+import { CreditosService } from 'src/creditos/creditos.service';
 
 interface VentasFilter {
   cliente?: string;
@@ -44,6 +50,8 @@ export class VentasService {
     @InjectRepository(Cliente)
     private clientesRepository: Repository<Cliente>,
     private functionsService: FunctionsService,
+    private ingresosService: IngresosService,
+    private creditosService: CreditosService,
   ) {}
 
   async create(createVentaDto: CreateVentaDTO) {
@@ -114,6 +122,7 @@ export class VentasService {
         const {
           fechaInicio,
           anticipo,
+          formaPagoAnticipo,
           cantidadCuotas,
           montoCuota,
           periodo,
@@ -139,7 +148,18 @@ export class VentasService {
 
         const nuevaFinanciacion = new Credito();
         nuevaFinanciacion.fechaInicio = new Date(fechaInicio);
-        if (anticipo) nuevaFinanciacion.anticipo = anticipo;
+        if (anticipo && anticipo > 0) {
+          nuevaFinanciacion.anticipo = anticipo;
+          // Generar recibo para el anticipo
+          const infoRecibo: CreateIngresoDTO = {
+            fecha: nuevaVenta.fecha,
+            importe: Number(anticipo),
+            formaPago: formaPagoAnticipo,
+            concepto: 'Anticipo - Pago de cuota',
+            cliente_id: cliente.id,
+          };
+          await this.ingresosService.create(infoRecibo);
+        }
         nuevaFinanciacion.cantidadCuotas = cantidadCuotas;
         nuevaFinanciacion.montoCuota = montoCuota;
         nuevaFinanciacion.periodo = periodo;
@@ -336,7 +356,7 @@ export class VentasService {
     return await this.ventasRepository.findOneBy({ id });
   }
 
-  async update(id: number, updateVentaDto: CreateVentaDTO) {
+  async update(id: number, updateVentaDto: UpdateVentaDTO) {
     try {
       const venta = await this.ventasRepository.findOneBy({ id });
       if (!venta) return 'No existe la venta con el ID ingresado';
@@ -359,117 +379,186 @@ export class VentasService {
 
       venta.fecha = fecha;
       if (comprobante && comprobante_url) {
-        /* const oldFilePath = path.join(
-          __dirname,
-          '..',
-          'uploads',
-          path.basename(venta.comprobanteUrl),
-        );
-        // Eliminar el archivo antiguo
-        if (fs.existsSync(oldFilePath)) {
-          fs.unlinkSync(oldFilePath);
-        } */
-
         // Asignar nuevos valores
         venta.comprobante = comprobante;
         venta.comprobanteUrl = comprobante_url;
       }
-      venta.subtotal = subtotal;
-      venta.descuento = descuento;
+      venta.subtotal = subtotal ? subtotal : total;
+      if (venta.descuento) venta.descuento = descuento;
       venta.total = total;
       venta.observaciones = observaciones;
-      venta.estado = estado;
+      if (venta.estado) venta.estado = estado;
       venta.fechaEntrega = fechaEntrega;
-      venta.clienteId = cliente_id;
 
-      if (condicion === CondicionOperacion.CTA_CTE && financiacion) {
-        // Si se envía una financiación, se anula la existente directamente y se crea una nueva
-        const {
-          fechaInicio,
-          anticipo,
-          cantidadCuotas,
-          montoCuota,
-          periodo,
-          estado,
-        } = financiacion;
+      const cliente = await this.clientesRepository.findOne({
+        where: { id: cliente_id },
+      });
+      venta.cliente = cliente;
 
-        const creditoActual = venta.financiacion.at(-1);
+      if (venta.condicion === condicion) {
+        // Gestionar actualización del crédito
+        if (
+          venta.condicion === CondicionOperacion.CTA_CTE &&
+          condicion === CondicionOperacion.CTA_CTE &&
+          financiacion
+        ) {
+          const creditoActual = venta.financiacion.at(-1);
+          await this.creditosService.update(creditoActual.id, financiacion);
+        }
+      } else {
+        if (
+          venta.condicion === CondicionOperacion.CTA_CTE &&
+          condicion === CondicionOperacion.CONTADO
+        ) {
+          // Inicialmente con crédito, ahora de contado
+          const creditoActual = venta.financiacion.at(-1);
+          await creditoActual.anularCredito();
+        } else if (
+          venta.condicion === CondicionOperacion.CONTADO &&
+          condicion === CondicionOperacion.CTA_CTE
+        ) {
+          // Inicialmente de contado, ahora a crédito
+          const {
+            fechaInicio,
+            anticipo,
+            formaPagoAnticipo,
+            cantidadCuotas,
+            montoCuota,
+            periodo,
+            estado,
+          } = financiacion;
 
-        // Anular actual y crear nuevo
-        await creditoActual.anularCredito();
-        const nuevaFinanciacion = new Credito();
-
-        nuevaFinanciacion.fechaInicio = new Date(fechaInicio);
-        nuevaFinanciacion.anticipo = anticipo;
-        nuevaFinanciacion.cantidadCuotas = cantidadCuotas;
-        nuevaFinanciacion.montoCuota = montoCuota;
-        nuevaFinanciacion.estado = estado;
-
-        let fechaVenc = new Date(fechaInicio.valueOf());
-        fechaVenc.setHours(fechaVenc.getHours() + 3);
-
-        for (let numCuota = 1; numCuota <= cantidadCuotas; numCuota++) {
-          const cuota = new Cuota();
-          cuota.cuotaNro = numCuota;
-          fechaVenc = new Date(fechaVenc.valueOf());
-
-          if (numCuota !== 1) {
-            switch (periodo) {
-              case Periodo.Mensual: {
-                fechaVenc = this.functionsService.addMonth(fechaVenc);
-                if (
-                  fechaVenc.getDate() < nuevaFinanciacion.fechaInicio.getDate()
-                ) {
-                  fechaVenc = this.functionsService.addMonth(fechaVenc);
-                  fechaVenc.setDate(0); // Esto ajusta al último día del mes anterior
-                  if (
-                    fechaVenc.getDate() >
-                    nuevaFinanciacion.fechaInicio.getDate()
-                  ) {
-                    fechaVenc.setDate(nuevaFinanciacion.fechaInicio.getDate());
-                  }
-                }
-                break;
-              }
-              case Periodo.Quincenal: {
-                fechaVenc.setDate(fechaVenc.getDate() + 15);
-                if (fechaVenc.getDay() === 0) {
-                  fechaVenc.setDate(fechaVenc.getDate() + 1);
-                }
-                break;
-              }
-              case Periodo.Semanal: {
-                fechaVenc.setDate(fechaVenc.getDate() + 7);
-                break;
-              }
-              default: {
-                console.error(
-                  'Error con el período de las cuotas. Período inválido',
-                );
-                break;
-              }
+          if (cliente) {
+            // Actualizar saldo del cliente
+            if (anticipo > 0) {
+              const saldoActual = Number(cliente.saldo);
+              const nuevoSaldo =
+                saldoActual +
+                Number(cantidadCuotas) * Number(montoCuota) -
+                Number(anticipo);
+              cliente.saldo = nuevoSaldo;
+            } else {
+              cliente.saldo = Number(cliente.saldo) + Number(venta.total);
             }
+            await this.clientesRepository.save(cliente);
           }
 
-          cuota.fechaVencimiento = fechaVenc;
-          cuota.montoCuota = montoCuota;
-          nuevaFinanciacion.cuotas = nuevaFinanciacion.cuotas
-            ? [...nuevaFinanciacion.cuotas, cuota]
-            : [cuota];
+          const nuevaFinanciacion = new Credito();
+          nuevaFinanciacion.fechaInicio = new Date(fechaInicio);
+          if (anticipo && anticipo > 0) {
+            nuevaFinanciacion.anticipo = anticipo;
+            // Generar recibo para el anticipo
+            const infoRecibo: CreateIngresoDTO = {
+              fecha: venta.fecha,
+              importe: Number(anticipo),
+              formaPago: formaPagoAnticipo,
+              concepto: 'Anticipo - Pago de cuota',
+              cliente_id: cliente.id,
+            };
+            await this.ingresosService.create(infoRecibo);
+          }
+          nuevaFinanciacion.cantidadCuotas = cantidadCuotas;
+          nuevaFinanciacion.montoCuota = montoCuota;
+          nuevaFinanciacion.periodo = periodo;
+          if (estado) nuevaFinanciacion.estado = estado;
+
+          let fechaVenc = new Date(fechaInicio.valueOf());
+          fechaVenc.setHours(fechaVenc.getHours() + 3);
+
+          let anticipoRestante = anticipo;
+
+          for (let numCuota = 1; numCuota <= cantidadCuotas; numCuota++) {
+            const cuota = new Cuota();
+            cuota.cuotaNro = numCuota;
+            fechaVenc = new Date(fechaVenc.valueOf());
+
+            if (numCuota !== 1) {
+              switch (periodo) {
+                case Periodo.Mensual: {
+                  fechaVenc = this.functionsService.addMonth(fechaVenc);
+                  if (
+                    fechaVenc.getDate() <
+                    nuevaFinanciacion.fechaInicio.getDate()
+                  ) {
+                    fechaVenc = this.functionsService.addMonth(fechaVenc);
+                    fechaVenc.setDate(0); // Esto ajusta al último día del mes anterior
+                    if (
+                      fechaVenc.getDate() >
+                      nuevaFinanciacion.fechaInicio.getDate()
+                    ) {
+                      fechaVenc.setDate(
+                        nuevaFinanciacion.fechaInicio.getDate(),
+                      );
+                    }
+                  }
+                  break;
+                }
+                case Periodo.Quincenal: {
+                  fechaVenc.setDate(fechaVenc.getDate() + 15);
+                  if (fechaVenc.getDay() === 0) {
+                    fechaVenc.setDate(fechaVenc.getDate() + 1);
+                  }
+                  break;
+                }
+                case Periodo.Semanal: {
+                  fechaVenc.setDate(fechaVenc.getDate() + 7);
+                  break;
+                }
+                default: {
+                  console.error(
+                    'Error con el período de las cuotas. Período inválido',
+                  );
+                  break;
+                }
+              }
+            }
+
+            if (anticipoRestante > 0) {
+              if (anticipoRestante >= montoCuota) {
+                cuota.montoPagado = montoCuota;
+                cuota.fechaPago = fechaInicio;
+                cuota.estado = EstadoCuota.Pagada;
+                anticipoRestante -= montoCuota;
+              } else {
+                cuota.montoPagado = anticipoRestante;
+                cuota.fechaPago = fechaInicio;
+                anticipoRestante = 0;
+              }
+              nuevaFinanciacion.fechaUltimoPago = fechaInicio;
+            }
+
+            cuota.fechaVencimiento = fechaVenc;
+            cuota.montoCuota = montoCuota;
+            nuevaFinanciacion.cuotas = nuevaFinanciacion.cuotas
+              ? [...nuevaFinanciacion.cuotas, cuota]
+              : [cuota];
+          }
+
+          venta.financiacion = [nuevaFinanciacion];
+
+          // Crear cartón
+          const carton = new Carton();
+          carton.estado = EstadoCarton.Pendiente;
+          carton.fechaCarton = new Date();
+
+          if (financiacion.id_grupoCartones) {
+            carton.grupoCartones = await this.grupoCartonesRepository.findOne({
+              where: { id: financiacion.id_grupoCartones },
+            });
+          } else {
+            const nuevoGrupoCartones = new GrupoCartones();
+            if (financiacion.alias_grupoCartones) {
+              nuevoGrupoCartones.alias = financiacion.alias_grupoCartones;
+            }
+            await this.grupoCartonesRepository.save(nuevoGrupoCartones);
+            carton.grupoCartones = nuevoGrupoCartones;
+          }
+
+          await this.cartonesRepository.save(carton);
+          nuevaFinanciacion.carton = carton;
         }
-
-        venta.financiacion = [...venta.financiacion, nuevaFinanciacion];
-      } else if (
-        condicion === CondicionOperacion.CONTADO &&
-        venta.condicion === CondicionOperacion.CTA_CTE
-      ) {
-        const creditoActual = venta.financiacion.at(-1);
-
-        // Anular actual y crear nuevo
-        await creditoActual.anularCredito();
+        venta.condicion = condicion;
       }
-
-      venta.condicion = condicion;
 
       if (nuevosProductos) {
         // Mapa para acceso rápido a productos por ID

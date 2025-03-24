@@ -1,4 +1,4 @@
-import { ApiProperty, IntersectionType } from '@nestjs/swagger';
+import { ApiProperty, IntersectionType, PartialType } from '@nestjs/swagger';
 import {
   ArrayMinSize,
   IsArray,
@@ -9,7 +9,7 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
-import { CreateCreditoDTO } from '../creditos/creditos.dto';
+import { CreateCreditoDTO, UpdateCreditoDTO } from '../creditos/creditos.dto';
 import { CreateOperacionDTO } from './operaciones.dto';
 
 class VentaInfo {
@@ -59,5 +59,17 @@ export class CreateVentaDTO extends IntersectionType(
 
 export class CreateVentaWithFileDTO {
   data: CreateVentaDTO;
+  file: Express.Multer.File;
+}
+
+export class UpdateVentaDTO extends PartialType(CreateVentaDTO) {
+  @IsOptional()
+  @ValidateNested()
+  @ApiProperty()
+  financiacion?: UpdateCreditoDTO;
+}
+
+export class UpdateVentaWithFileDTO {
+  data: UpdateVentaDTO;
   file: Express.Multer.File;
 }
