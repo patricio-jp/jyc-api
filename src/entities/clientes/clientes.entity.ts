@@ -16,6 +16,7 @@ import { TelefonoCliente, Telefono } from '../telefonos/telefonos.entity';
 import { Usuario } from '../usuarios/usuarios.entity';
 import { Venta } from '../operaciones/ventas.entity';
 import { Zona } from '../zonas/zonas.entity';
+import { Recibo } from '../recibos/recibos.entity';
 
 export enum EstadoCliente {
   AConfirmar, // Nuevo cliente
@@ -120,6 +121,9 @@ export class Cliente extends BaseEntity {
 
   @OneToMany(() => Venta, (venta) => venta.cliente)
   ventas: Venta[];
+
+  @OneToMany(() => Recibo, (recibo) => recibo.cliente)
+  pagos: Recibo[];
 
   static findByName(name: string) {
     return this.createQueryBuilder('cliente')

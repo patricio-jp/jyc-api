@@ -1,19 +1,28 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Carton, EstadoCarton } from 'src/entities/cartones/carton.entity';
 import { CambiarEstadoCartonDTO } from 'src/entities/cartones/cartones.dto';
-import { CargarPagoDTO } from 'src/entities/creditos/creditos.dto';
+import { GrupoCartones } from 'src/entities/cartones/grupoCartones.entity';
+import {
+  CargarPagoDTO,
+  UpdateCreditoDTO,
+} from 'src/entities/creditos/creditos.dto';
 import {
   Credito,
+  CreditoUpdateTypes,
   EstadoCredito,
   Periodo,
 } from 'src/entities/creditos/creditos.entity';
 import { Cuota, EstadoCuota } from 'src/entities/cuotas/cuotas.entity';
+import { CreateIngresoDTO } from 'src/entities/operaciones/ingresos.dto';
 import { EstadoOperacion } from 'src/entities/operaciones/operaciones.entity';
+import { Venta } from 'src/entities/operaciones/ventas.entity';
+import { FunctionsService } from 'src/helpers/functions/functions.service';
+import { IngresosService } from 'src/ingresos/ingresos.service';
 import { Repository } from 'typeorm';
 
 interface CreditosFilter {
-  estadoCredito?: EstadoCredito;
+  estadoCredito?: EstadoCredito | EstadoCredito[];
   periodo?: Periodo;
   estadoCarton?: EstadoCarton;
   fechaVencCuota?: Date;
@@ -30,6 +39,12 @@ export class CreditosService {
     private creditosRepository: Repository<Credito>,
     @InjectRepository(Carton)
     private cartonesRepository: Repository<Carton>,
+    @InjectRepository(GrupoCartones)
+    private grupoCartonesRepository: Repository<GrupoCartones>,
+    @InjectRepository(Venta)
+    private ventasRepository: Repository<Venta>,
+    private functionsService: FunctionsService,
+    private ingresosService: IngresosService,
   ) {}
 
   async findAll(page: number, limit: number, filter: CreditosFilter) {
@@ -69,9 +84,15 @@ export class CreditosService {
     }
 
     if (filter.estadoCredito) {
-      query.andWhere('credito.estado = :estadoCredito', {
-        estadoCredito: filter.estadoCredito,
-      });
+      if (Array.isArray(filter.estadoCredito)) {
+        query.andWhere('credito.estado IN (:...estadoCredito)', {
+          estadoCredito: filter.estadoCredito,
+        });
+      } else {
+        query.andWhere('credito.estado = :estadoCredito', {
+          estadoCredito: filter.estadoCredito,
+        });
+      }
     }
 
     if (filter.periodo) {
@@ -149,9 +170,260 @@ export class CreditosService {
     return await Cuota.obtenerVencimientosDelDia(fecha);
   }
 
-  /* update(id: number, updateCreditoDto: UpdateCreditoDto) {
-    return `This action updates a #${id} credito`;
-  } */
+  async update(id: number, updateCreditoDto: UpdateCreditoDTO) {
+    try {
+      const credito = await Credito.obtenerCredito(id);
+
+      if (!credito) return 'No existe el crédito con el ID ingresado';
+
+      const updateType: CreditoUpdateTypes =
+        credito.compareWithDTO(updateCreditoDto);
+
+      if (updateType === CreditoUpdateTypes.NonUpdate) {
+        return 'No corresponde actualización';
+      } else {
+        if (updateType === CreditoUpdateTypes.Full) {
+          // Full
+          await credito.anularCredito();
+          const {
+            id_venta,
+            id_grupoCartones,
+            alias_grupoCartones,
+            estadoCarton,
+            fechaCarton,
+            fechaUltimoPago,
+            formaPagoAnticipo,
+            fechaInicio,
+            anticipo,
+            cantidadCuotas,
+            montoCuota,
+            periodo,
+            estado,
+          } = updateCreditoDto;
+
+          const ventaAsociadaAlCredito = await this.ventasRepository.findOneBy({
+            id: id_venta,
+          });
+
+          if (!ventaAsociadaAlCredito)
+            throw new BadRequestException('El ID de la venta es requerido');
+
+          const nuevoCredito = new Credito();
+          nuevoCredito.venta = ventaAsociadaAlCredito;
+          nuevoCredito.fechaInicio = new Date(fechaInicio);
+          nuevoCredito.cantidadCuotas = cantidadCuotas;
+          nuevoCredito.montoCuota = montoCuota;
+          nuevoCredito.periodo = periodo;
+          if (anticipo && anticipo > 0) {
+            nuevoCredito.anticipo = anticipo;
+            // Generar recibo para el anticipo
+            const infoRecibo: CreateIngresoDTO = {
+              fecha: credito.venta.fecha,
+              importe: Number(anticipo),
+              formaPago: formaPagoAnticipo,
+              concepto: 'Anticipo - Pago de cuota',
+              cliente_id: credito.venta.cliente.id,
+            };
+            await this.ingresosService.create(infoRecibo);
+          }
+          if (estado) nuevoCredito.estado = estado;
+
+          let fechaVenc = new Date(fechaInicio.valueOf());
+          fechaVenc.setHours(fechaVenc.getHours() + 3);
+
+          let anticipoRestante = anticipo;
+
+          for (let numCuota = 1; numCuota <= cantidadCuotas; numCuota++) {
+            const cuota = new Cuota();
+            cuota.cuotaNro = numCuota;
+            fechaVenc = new Date(fechaVenc.valueOf());
+
+            if (numCuota !== 1) {
+              switch (periodo) {
+                case Periodo.Mensual: {
+                  fechaVenc = this.functionsService.addMonth(fechaVenc);
+                  if (
+                    fechaVenc.getDate() < nuevoCredito.fechaInicio.getDate()
+                  ) {
+                    fechaVenc = this.functionsService.addMonth(fechaVenc);
+                    fechaVenc.setDate(0); // Esto ajusta al último día del mes anterior
+                    if (
+                      fechaVenc.getDate() > nuevoCredito.fechaInicio.getDate()
+                    ) {
+                      fechaVenc.setDate(nuevoCredito.fechaInicio.getDate());
+                    }
+                  }
+                  break;
+                }
+                case Periodo.Quincenal: {
+                  fechaVenc.setDate(fechaVenc.getDate() + 15);
+                  if (fechaVenc.getDay() === 0) {
+                    fechaVenc.setDate(fechaVenc.getDate() + 1);
+                  }
+                  break;
+                }
+                case Periodo.Semanal: {
+                  fechaVenc.setDate(fechaVenc.getDate() + 7);
+                  break;
+                }
+                default: {
+                  console.error(
+                    'Error con el período de las cuotas. Período inválido',
+                  );
+                  break;
+                }
+              }
+            }
+
+            if (anticipoRestante > 0) {
+              if (anticipoRestante >= montoCuota) {
+                cuota.montoPagado = montoCuota;
+                cuota.fechaPago = fechaInicio;
+                cuota.estado = EstadoCuota.Pagada;
+                anticipoRestante -= montoCuota;
+              } else {
+                cuota.montoPagado = anticipoRestante;
+                cuota.fechaPago = fechaInicio;
+                anticipoRestante = 0;
+              }
+              nuevoCredito.fechaUltimoPago = fechaUltimoPago;
+            }
+
+            cuota.fechaVencimiento = fechaVenc;
+            cuota.montoCuota = montoCuota;
+            nuevoCredito.cuotas = nuevoCredito.cuotas
+              ? [...nuevoCredito.cuotas, cuota]
+              : [cuota];
+          }
+
+          // Crear cartón
+          const carton = new Carton();
+          carton.estado = estadoCarton;
+          carton.fechaCarton = new Date(fechaCarton);
+
+          if (id_grupoCartones) {
+            carton.grupoCartones = await this.grupoCartonesRepository.findOne({
+              where: { id: id_grupoCartones },
+            });
+          } else {
+            const nuevoGrupoCartones = new GrupoCartones();
+            if (alias_grupoCartones) {
+              nuevoGrupoCartones.alias = alias_grupoCartones;
+            }
+            await this.grupoCartonesRepository.save(nuevoGrupoCartones);
+            carton.grupoCartones = nuevoGrupoCartones;
+          }
+
+          await this.cartonesRepository.save(carton);
+          nuevoCredito.carton = carton;
+
+          return await nuevoCredito.save();
+        } else {
+          // Parcial con actualizacion de cuotas
+          const {
+            anticipo,
+            formaPagoAnticipo,
+            uuidRecibo,
+            estado,
+            fechaInicio,
+            periodo,
+            fechaUltimoPago,
+            montoCuota,
+          } = updateCreditoDto;
+
+          // Actualizar estado si corresponde
+          if (credito.estado !== estado) credito.estado = estado;
+
+          // Actualizar fecha de último pago si corresponde
+          if (fechaUltimoPago) {
+            const fechaUltPago = new Date(fechaUltimoPago);
+            const timeUltimoPago = fechaUltPago.getTime();
+            const timeCreditoUltPago = credito.fechaUltimoPago.getTime();
+            if (timeCreditoUltPago !== timeUltimoPago)
+              credito.fechaUltimoPago = fechaUltPago;
+          }
+
+          // Actualizar monto de cuotas si corresponde
+          if (credito.montoCuota !== montoCuota) {
+            credito.montoCuota = montoCuota;
+            credito.cuotas.forEach((cuota) => {
+              cuota.montoCuota = montoCuota;
+            });
+          }
+
+          // Actualizar info de anticipo si corresponde
+          if (credito.anticipo !== anticipo) {
+            credito.anticipo = anticipo;
+            // Eliminar recibo anterior
+            const ingreso = (
+              await this.ingresosService.findOneByUUID(uuidRecibo)
+            ).Ingreso;
+            await ingreso.softRemove();
+
+            // Crear nuevo recibo
+            const infoRecibo: CreateIngresoDTO = {
+              fecha: credito.venta.fecha,
+              importe: Number(anticipo),
+              formaPago: formaPagoAnticipo,
+              concepto: 'Anticipo - Pago de cuota',
+              cliente_id: credito.venta.cliente.id,
+            };
+            await this.ingresosService.create(infoRecibo);
+          }
+
+          // Actualizar fechaInicio y vencimiento de cuotas si corresponde
+          const fechaInicioNueva = new Date(fechaInicio);
+          const timeInicioRegistrado = credito.fechaInicio.getTime();
+          const timeInicioNuevo = fechaInicioNueva.getTime();
+          if (timeInicioRegistrado !== timeInicioNuevo) {
+            let fechaVenc = new Date(fechaInicio.valueOf());
+            fechaVenc.setHours(fechaVenc.getHours() + 3);
+
+            credito.cuotas.forEach((cuota) => {
+              fechaVenc = new Date(fechaVenc.valueOf());
+
+              if (cuota.cuotaNro !== 1) {
+                switch (periodo) {
+                  case Periodo.Mensual: {
+                    fechaVenc = this.functionsService.addMonth(fechaVenc);
+                    if (fechaVenc.getDate() < fechaInicioNueva.getDate()) {
+                      fechaVenc = this.functionsService.addMonth(fechaVenc);
+                      fechaVenc.setDate(0); // Esto ajusta al último día del mes anterior
+                      if (fechaVenc.getDate() > fechaInicioNueva.getDate()) {
+                        fechaVenc.setDate(fechaInicioNueva.getDate());
+                      }
+                    }
+                    break;
+                  }
+                  case Periodo.Quincenal: {
+                    fechaVenc.setDate(fechaVenc.getDate() + 15);
+                    if (fechaVenc.getDay() === 0) {
+                      fechaVenc.setDate(fechaVenc.getDate() + 1);
+                    }
+                    break;
+                  }
+                  case Periodo.Semanal: {
+                    fechaVenc.setDate(fechaVenc.getDate() + 7);
+                    break;
+                  }
+                  default: {
+                    console.error(
+                      'Error con el período de las cuotas. Período inválido',
+                    );
+                    break;
+                  }
+                }
+              }
+
+              cuota.fechaVencimiento = fechaVenc;
+            });
+          }
+        }
+      }
+    } catch (error) {
+      return `Error: ${error}`;
+    }
+  }
 
   async cargarPago(id: number, pago: CargarPagoDTO) {
     try {
@@ -192,6 +464,9 @@ export class CreditosService {
         );
       }
 
+      // Actualizar fecha de último pago en el crédito
+      credito.fechaUltimoPago = pago.fechaPago ? pago.fechaPago : new Date();
+
       credito.venta.cliente.saldo -= Number(pago.monto);
       if (montoAPagar > 0 && !cuotaAPagar) {
         // Asignar saldo pagado de más a la última cuota
@@ -212,7 +487,17 @@ export class CreditosService {
         credito.venta.estado = EstadoOperacion.Pagado;
       }
 
-      return await this.creditosRepository.save(credito);
+      // Generar recibo
+      const infoRecibo: CreateIngresoDTO = {
+        fecha: pago.fechaPago ? pago.fechaPago : new Date(),
+        importe: Number(pago.monto),
+        formaPago: pago.formaPago,
+        concepto: 'Pago de cuota',
+        cliente_id: credito.venta.cliente.id,
+      };
+
+      await this.creditosRepository.save(credito);
+      return await this.ingresosService.create(infoRecibo);
     } catch (error) {
       return `Error: ${error}`;
     }

@@ -14,6 +14,7 @@ import {
 import { Venta } from '../operaciones/ventas.entity';
 import { Cuota, EstadoCuota } from '../cuotas/cuotas.entity';
 import { Carton } from '../cartones/carton.entity';
+import { CreateCreditoDTO, UpdateCreditoDTO } from './creditos.dto';
 
 export enum EstadoCredito {
   Pendiente,
@@ -27,6 +28,12 @@ export enum Periodo {
   Mensual,
   Quincenal,
   Semanal,
+}
+
+export enum CreditoUpdateTypes {
+  Simple, // Para anticipo, montoCuota o fechaInicio (estado o fechaUltimoPago también)
+  Full, // Crea nueva instancia y anula la existente. Para periodo o cantidadCuotas
+  NonUpdate, // No require actualización
 }
 
 @Entity('creditos')
@@ -148,5 +155,34 @@ export class Credito extends BaseEntity {
       .where('creditoId = :creditoId', { creditoId: this.id })
       .andWhere('estado != :estado', { estado: EstadoCuota.Pagada })
       .execute();
+  }
+
+  compareWithDTO(dto: CreateCreditoDTO | UpdateCreditoDTO): CreditoUpdateTypes {
+    if (this.id_venta !== dto.id_venta) {
+      // Retornar NoUpdate si se compara con crédito de otra venta
+      return CreditoUpdateTypes.NonUpdate;
+    }
+    // Si cambió el periodo o la cantidad de cuotas se requiere una actualización FULL
+    if (
+      this.periodo !== dto.periodo ||
+      this.cantidadCuotas !== dto.cantidadCuotas
+    ) {
+      return CreditoUpdateTypes.Full;
+    }
+
+    // Si cambian otros campos (como fechaInicio, anticipo o montoCuota) se efectúa una actualización SIMPLE
+    const fechaInicioActual = this.fechaInicio.getTime();
+    const fechaInicioDTO = new Date(dto.fechaInicio).getTime();
+
+    if (
+      fechaInicioActual !== fechaInicioDTO ||
+      this.anticipo !== dto.anticipo ||
+      this.montoCuota !== dto.montoCuota
+    ) {
+      return CreditoUpdateTypes.Simple;
+    }
+
+    // Por defecto no se actualiza
+    return CreditoUpdateTypes.NonUpdate;
   }
 }

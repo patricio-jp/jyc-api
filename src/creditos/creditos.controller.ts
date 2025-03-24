@@ -10,7 +10,10 @@ import {
 } from '@nestjs/common';
 import { CreditosService } from './creditos.service';
 import { ApiTags } from '@nestjs/swagger';
-import { CargarPagoDTO } from 'src/entities/creditos/creditos.dto';
+import {
+  CargarPagoDTO,
+  UpdateCreditoDTO,
+} from 'src/entities/creditos/creditos.dto';
 import { EstadoCredito } from 'src/entities/creditos/creditos.entity';
 import { CambiarEstadoCartonDTO } from 'src/entities/cartones/cartones.dto';
 import { Roles } from 'src/helpers/roleDetector';
@@ -50,10 +53,10 @@ export class CreditosController {
     return this.creditosService.getCreditosPorVencimiento(new Date(fecha));
   }
 
-  /* @Patch(':id')
-  update(@Param('id') id: string, @Body() updateCreditoDto: UpdateCreditoDto) {
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() updateCreditoDto: UpdateCreditoDTO) {
     return this.creditosService.update(+id, updateCreditoDto);
-  } */
+  }
 
   @Patch(':id/cargar-pago')
   @Roles(Rol.Administrador, Rol.Supervisor, Rol.Cobrador)

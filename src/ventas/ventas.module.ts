@@ -8,10 +8,14 @@ import { Cliente } from 'src/entities/clientes/clientes.entity';
 import { FunctionsService } from 'src/helpers/functions/functions.service';
 import { GrupoCartones } from 'src/entities/cartones/grupoCartones.entity';
 import { Carton } from 'src/entities/cartones/carton.entity';
+import { IngresosModule } from 'src/ingresos/ingresos.module';
+import { CreditosModule } from 'src/creditos/creditos.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Venta, Producto, Carton, GrupoCartones, Cliente]),
+    IngresosModule,
+    CreditosModule,
   ],
   controllers: [VentasController],
   providers: [VentasService, FunctionsService],

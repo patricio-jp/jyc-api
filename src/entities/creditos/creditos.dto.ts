@@ -7,10 +7,12 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  IsUUID,
   Min,
 } from 'class-validator';
 import { EstadoCredito, Periodo } from './creditos.entity';
 import { EstadoCarton } from '../cartones/carton.entity';
+import { FormaPago } from '../operaciones/ingresos.entity';
 
 export class CreateCreditoDTO {
   @IsOptional()
@@ -33,6 +35,11 @@ export class CreateCreditoDTO {
   })
   @ApiProperty()
   anticipo?: number;
+
+  @IsOptional()
+  @IsEnum(FormaPago)
+  @ApiProperty()
+  formaPagoAnticipo?: FormaPago;
 
   @IsInt()
   @Min(1)
@@ -58,7 +65,7 @@ export class CreateCreditoDTO {
   @IsOptional()
   @IsEnum(EstadoCarton)
   @ApiProperty()
-  estadoCarton?: EstadoCredito;
+  estadoCarton?: EstadoCarton;
 
   @IsOptional()
   @IsISO8601()
@@ -82,6 +89,10 @@ export class CargarPagoDTO {
   @ApiProperty()
   monto: number;
 
+  @IsEnum(FormaPago)
+  @ApiProperty()
+  formaPago: FormaPago;
+
   @IsOptional()
   @IsISO8601()
   @ApiProperty()
@@ -91,4 +102,10 @@ export class CargarPagoDTO {
   @IsInt()
   @ApiProperty()
   nroCuota?: number;
+}
+
+export class UpdateCreditoDTO extends CreateCreditoDTO {
+  @IsUUID()
+  @ApiProperty()
+  uuidRecibo: string;
 }
