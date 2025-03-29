@@ -468,6 +468,9 @@ export class CreditosService {
       }
 
       // Actualizar fecha de último pago en el crédito
+      credito.fechaUltimoPago = pago.fechaPago ? pago.fechaPago : new Date();
+
+      // Actualizar fecha de último pago en el crédito
       credito.fechaUltimoPago = pago.fechaPago
         ? new Date(pago.fechaPago)
         : new Date();
