@@ -431,9 +431,8 @@ export class CreditosService {
 
       if (!credito) return 'No existe el crédito con el ID ingresado';
 
-      // TO-DO Revisar cuota seleccionada con pagos parciales previos
       let cuotaAPagar = credito.cuotas.find(
-        (cuota) => cuota.montoPagado < cuota.montoCuota,
+        (cuota) => Number(cuota.montoPagado) < Number(cuota.montoCuota),
       );
 
       let montoAPagar = Number(pago.monto);
