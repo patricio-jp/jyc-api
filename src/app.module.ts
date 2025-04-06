@@ -1,6 +1,4 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
 import { ClientesModule } from './clientes/clientes.module';
 import { DatabaseModule } from './database/database.module';
@@ -9,9 +7,6 @@ import { VentasModule } from './ventas/ventas.module';
 import { CreditosModule } from './creditos/creditos.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { Cliente } from './entities/clientes/clientes.entity';
-import { Producto } from './entities/productos/productos.entity';
 import { ProductosModule } from './productos/productos.module';
 import { FunctionsService } from './helpers/functions/functions.service';
 import { AuthModule } from './auth/auth.module';
@@ -31,7 +26,7 @@ import { IngresosModule } from './ingresos/ingresos.module';
     JwtModule.register({
       secret: process.env.HASH_PASSWORD,
       global: true,
-      signOptions: { expiresIn: '15m' },
+      signOptions: { expiresIn: '10m' },
     }),
     DatabaseModule,
     ServeStaticModule.forRoot({
@@ -41,15 +36,13 @@ import { IngresosModule } from './ingresos/ingresos.module';
     UsuariosModule,
     VentasModule,
     CreditosModule,
-    TypeOrmModule.forFeature([Cliente, Producto]),
     ProductosModule,
     AuthModule,
     CartonesModule,
     IngresosModule,
   ],
-  controllers: [AppController, FileController],
+  controllers: [FileController],
   providers: [
-    AppService,
     FunctionsService,
     {
       provide: 'APP_GUARD',

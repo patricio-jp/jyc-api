@@ -44,7 +44,6 @@ export class UsuariosController {
   }
 
   @Get(':id')
-  @Roles(Rol.Administrador, Rol.Supervisor)
   async findOne(@Param('id') id: string) {
     return this.usuariosService.findOne(+id);
   }
