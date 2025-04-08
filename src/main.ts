@@ -13,10 +13,12 @@ async function bootstrap() {
 
   app.useGlobalPipes(new ValidationPipe({ transform: true }));
 
+  app.enableShutdownHooks();
+
   const config = new DocumentBuilder()
     .setTitle('JyC Amoblamientos')
     .setDescription('API para JyC Amoblamientos')
-    .setVersion('1.0')
+    .setVersion('1.0.0')
     .addTag('Usuarios')
     .addTag('Clientes')
     .addTag('Domicilios')
@@ -25,6 +27,7 @@ async function bootstrap() {
     .addTag('Créditos')
     .addTag('Productos')
     .addTag('Inventario')
+    .addTag('Ingresos')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

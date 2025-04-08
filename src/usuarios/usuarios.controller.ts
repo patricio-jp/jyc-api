@@ -26,7 +26,7 @@ export class UsuariosController {
 
   @Post()
   //@Roles(Rol.Administrador, Rol.Supervisor)
-  @SkipAuth()
+  @SkipAuth() // TO-DO DELETE SkipAuth to protect endpoint
   async create(@Body() createUsuarioDto: CreateUsuarioDTO) {
     return this.usuariosService.create(createUsuarioDto);
   }

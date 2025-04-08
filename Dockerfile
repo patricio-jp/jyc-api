@@ -1,25 +1,31 @@
 #----------------------------------------------
-  FROM node:lts-alpine AS build
-  WORKDIR /app
-  COPY package.json package-lock.json ./
-  RUN npm install --frozen-lockfile --no-audit --ignore-scripts
-  RUN npm rebuild bcrypt
-  COPY . .
-  RUN npm run build; \
-      npm install --production --ignore-scripts --prefer-offline
+FROM node@sha256:9bef0ef1e268f60627da9ba7d7605e8831d5b56ad07487d24d1aa386336d1944 AS build
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm install --frozen-lockfile --no-audit --ignore-scripts
+RUN npm rebuild bcrypt
+COPY . .
+RUN npm run build; \
+  npm install --production --ignore-scripts --prefer-offline
 
 #----------------------------------------------
-  FROM node:lts-alpine AS production
+FROM node@sha256:9bef0ef1e268f60627da9ba7d7605e8831d5b56ad07487d24d1aa386336d1944 AS production
 
-  ENV NODE_ENV=production
-  ENV APP_PORT=3000
+RUN groupadd -r jycuser && useradd -r -g jycuser jycuser
 
-  WORKDIR /app
+USER jycuser
 
-  COPY --from=build /app/package.json /app/package-lock.json ./
-  COPY --from=build /app/node_modules ./node_modules
-  COPY --from=build /app/dist ./dist
+ENV NODE_ENV=production
+ENV APP_PORT=3000
 
-  EXPOSE ${APP_PORT}
+WORKDIR /app
 
-  CMD ["node", "dist/main.js"]
+COPY --from=build --chown=jycuser:jycuser /app/package.json /app/package-lock.json ./
+COPY --from=build --chown=jycuser:jycuser /app/node_modules ./node_modules
+COPY --from=build --chown=jycuser:jycuser /app/dist ./dist
+
+RUN npm ci --omit=dev
+
+EXPOSE ${APP_PORT}
+
+CMD ["node", "dist/main.js"]

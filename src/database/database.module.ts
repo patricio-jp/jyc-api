@@ -14,7 +14,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
         username: configService.get('DB_USER'),
         password: configService.get('DB_PASSWORD'),
         database: configService.get('DB_NAME'),
-        synchronize: true,
+        synchronize: true, // TO-DO Delete this
         //dropSchema: true,
         legacySpatialSupport: false,
         logging: true,
