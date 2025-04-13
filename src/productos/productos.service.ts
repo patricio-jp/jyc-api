@@ -18,6 +18,8 @@ enum ProductModifications {
 interface ProductosFilter {
   searchTerm?: string;
   mostrarEliminados?: boolean;
+  orderBy?: string;
+  orderDir?: 'asc' | 'desc';
 }
 
 @Injectable()
@@ -116,6 +118,20 @@ export class ProductosService {
 
     if (filter.mostrarEliminados) {
       query.withDeleted();
+    }
+
+    if (filter.orderBy) {
+      let orderCol = filter.orderBy;
+      if (filter.orderBy === 'costo' || filter.orderBy === 'precio') {
+        orderCol = `${filter.orderBy}s.precioUnitario`;
+      } else {
+        orderCol = `producto.${filter.orderBy}`;
+      }
+
+      query.orderBy(
+        orderCol,
+        (filter.orderDir.toUpperCase() as 'ASC' | 'DESC') || 'DESC',
+      );
     }
 
     if (page > 0 && limit > 0) query.skip((page - 1) * limit).take(limit);

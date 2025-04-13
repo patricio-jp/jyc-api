@@ -32,6 +32,8 @@ interface ClientesFilter {
   zona?: string;
   apariciones?: string;
   mostrarEliminados?: boolean;
+  orderBy?: string;
+  orderDir?: 'asc' | 'desc';
 }
 
 @Injectable()
@@ -167,6 +169,32 @@ export class ClientesService {
 
     if (filter.mostrarEliminados) {
       query.withDeleted();
+    }
+
+    if (filter.orderBy) {
+      if (filter.orderBy === 'nombre') {
+        query.orderBy({
+          'cliente.apellido': filter.orderDir.toUpperCase() as 'ASC' | 'DESC',
+          'cliente.nombre': filter.orderDir.toUpperCase() as 'ASC' | 'DESC',
+        });
+      } else if (
+        filter.orderBy === 'barrio' ||
+        filter.orderBy === 'localidad'
+      ) {
+        const orderByField = `domicilios.${filter.orderBy}`;
+        query.orderBy(
+          orderByField,
+          (filter.orderDir.toUpperCase() as 'ASC' | 'DESC') || 'DESC',
+        );
+      } else {
+        const orderByField = `cliente.${filter.orderBy}`;
+        query.orderBy(
+          orderByField,
+          (filter.orderDir.toUpperCase() as 'ASC' | 'DESC') || 'DESC',
+        );
+      }
+    } else if (!filter.counterQuery) {
+      query.orderBy('cliente.id', 'ASC');
     }
 
     if (filter.counterQuery) {

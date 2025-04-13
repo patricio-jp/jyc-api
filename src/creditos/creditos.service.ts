@@ -30,6 +30,8 @@ interface CreditosFilter {
   searchTerm?: string;
   mostrarEliminados?: boolean;
   counterQuery?: boolean;
+  orderBy?: string;
+  orderDir?: 'asc' | 'desc';
 }
 
 @Injectable()
@@ -142,6 +144,29 @@ export class CreditosService {
 
     if (filter.mostrarEliminados) {
       query.withDeleted();
+    }
+
+    if (filter.orderBy) {
+      if (filter.orderBy === 'cliente') {
+        query.orderBy({
+          'cliente.apellido': filter.orderDir.toUpperCase() as 'ASC' | 'DESC',
+          'cliente.nombre': filter.orderDir.toUpperCase() as 'ASC' | 'DESC',
+        });
+      } else if (filter.orderBy === 'credito') {
+        const orderByField = `venta.comprobante`;
+        query.orderBy(
+          orderByField,
+          (filter.orderDir.toUpperCase() as 'ASC' | 'DESC') || 'DESC',
+        );
+      } else {
+        const orderByField = `credito.${filter.orderBy}`;
+        query.orderBy(
+          orderByField,
+          (filter.orderDir.toUpperCase() as 'ASC' | 'DESC') || 'DESC',
+        );
+      }
+    } else if (!filter.counterQuery) {
+      query.orderBy('credito.id', 'DESC');
     }
 
     if (filter.counterQuery) {

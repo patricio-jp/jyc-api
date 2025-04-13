@@ -17,6 +17,8 @@ interface IngresosFilter {
   searchTerm?: string;
   mostrarEliminados?: boolean;
   counterQuery?: boolean;
+  orderBy?: string;
+  orderDir?: 'asc' | 'desc';
 }
 
 @Injectable()
@@ -131,6 +133,23 @@ export class IngresosService {
 
     if (filter.mostrarEliminados) {
       query.withDeleted();
+    }
+
+    if (filter.orderBy) {
+      if (filter.orderBy === 'cliente') {
+        query.orderBy({
+          'cliente.apellido': filter.orderDir.toUpperCase() as 'ASC' | 'DESC',
+          'cliente.nombre': filter.orderDir.toUpperCase() as 'ASC' | 'DESC',
+        });
+      } else {
+        const orderByField = `ingreso.${filter.orderBy}`;
+        query.orderBy(
+          orderByField,
+          (filter.orderDir.toUpperCase() as 'ASC' | 'DESC') || 'DESC',
+        );
+      }
+    } else if (!filter.counterQuery) {
+      query.orderBy('ingreso.id', 'DESC');
     }
 
     if (filter.counterQuery) {

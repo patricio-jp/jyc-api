@@ -34,6 +34,8 @@ interface VentasFilter {
   searchTerm?: string;
   mostrarEliminados?: boolean;
   counterQuery?: boolean;
+  orderBy?: string;
+  orderDir?: 'asc' | 'desc';
 }
 
 @Injectable()
@@ -337,6 +339,23 @@ export class VentasService {
 
     if (filter.mostrarEliminados) {
       query.withDeleted();
+    }
+
+    if (filter.orderBy) {
+      if (filter.orderBy === 'cliente') {
+        query.orderBy({
+          'cliente.apellido': filter.orderDir.toUpperCase() as 'ASC' | 'DESC',
+          'cliente.nombre': filter.orderDir.toUpperCase() as 'ASC' | 'DESC',
+        });
+      } else {
+        const orderByField = `venta.${filter.orderBy}`;
+        query.orderBy(
+          orderByField,
+          (filter.orderDir.toUpperCase() as 'ASC' | 'DESC') || 'DESC',
+        );
+      }
+    } else if (!filter.counterQuery) {
+      query.orderBy('venta.id', 'DESC');
     }
 
     if (filter.counterQuery) {
