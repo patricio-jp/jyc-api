@@ -12,9 +12,7 @@ RUN npm run build; \
 FROM node@sha256:9bef0ef1e268f60627da9ba7d7605e8831d5b56ad07487d24d1aa386336d1944 AS production
 
 RUN apk add --no-cache shadow && \
-    groupadd -r jycuser && useradd -r -g jycuser jycuser
-
-RUN mkdir -p /home/jycuser /app/logs /app/uploads /app/backups && chown -R jycuser:jycuser /home/jycuser /app/logs /app/uploads /app/backups
+    addgroup -g 1001 jycuser && adduser -u 1001 -G jycuser -s /bin/sh -D jycuser
 
 USER jycuser
 
