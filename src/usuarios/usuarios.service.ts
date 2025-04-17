@@ -1,9 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadGatewayException,
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { Rol, Usuario } from 'src/entities/usuarios/usuarios.entity';
+import { Estado, Rol, Usuario } from 'src/entities/usuarios/usuarios.entity';
 import {
   CreateUsuarioDTO,
+  RestorePasswordDTO,
+  SelfRestorePasswordDTO,
   UpdateUsuarioDTO,
 } from '../entities/usuarios/usuarios.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -17,6 +24,7 @@ interface UsuariosFilter {
   searchTerm?: string; // Usado para campos simples de la entidad
   domicilio?: string;
   rol?: Rol;
+  estado?: Estado;
   mostrarEliminados?: boolean;
 }
 
@@ -36,8 +44,8 @@ export class UsuariosService {
         return { message: 'Ya existe un usuario con el DNI ingresado' };
       }
 
-      const salt = await bcrypt.genSalt(10);
-      console.log(salt);
+      const salt = await bcrypt.genSalt(12);
+      //console.log(salt);
       const hashedPassword = await bcrypt.hash(usuario.password, salt);
 
       const newUser = new Usuario();
@@ -48,6 +56,7 @@ export class UsuariosService {
       newUser.fechaNacimiento = new Date(usuario.fechaNacimiento.valueOf());
       newUser.fechaInicio = new Date(usuario.fechaInicio.valueOf());
       newUser.rol = usuario.rol;
+      newUser.estado = usuario.estado;
 
       if (usuario.domicilios) {
         const domicilios = await Promise.all(
@@ -114,6 +123,10 @@ export class UsuariosService {
 
     if (filter.rol) {
       query.andWhere('(usuario.rol = :rol)', { rol: filter.rol });
+    }
+
+    if (filter.estado) {
+      query.andWhere('(usuario.estado = :estado)', { estado: filter.estado });
     }
 
     if (filter.mostrarEliminados) {
@@ -185,10 +198,10 @@ export class UsuariosService {
         nombre,
         apellido,
         dni,
-        password,
         fechaNacimiento,
         fechaInicio,
         rol,
+        estado,
         domicilios,
         telefonos,
         observaciones,
@@ -200,13 +213,14 @@ export class UsuariosService {
       usuario.fechaNacimiento = fechaNacimiento;
       usuario.fechaInicio = fechaInicio;
       usuario.rol = rol;
+      usuario.estado = estado;
       usuario.observaciones = observaciones;
 
-      if (password) {
-        const salt = process.env.HASH_PASSWORD ? process.env.HASH_PASSWORD : 10;
+      /* if (password) {
+        const salt = await bcrypt.genSalt(12);
         const hashedPassword = await bcrypt.hash(usuario.password, salt);
         usuario.password = hashedPassword;
-      }
+      } */
 
       if (domicilios) {
         domicilios.map(async (domicilio: CreateDomicilioDTO) => {
@@ -233,6 +247,78 @@ export class UsuariosService {
       return await this.usuariosRepository.save(usuario);
     } catch (error) {
       return error;
+    }
+  }
+
+  async askForPasswordReset(id: number) {
+    try {
+      const user = await this.usuariosRepository.findOneBy({ id });
+      if (!user)
+        throw new BadRequestException(
+          'The user with the ID provided not exists',
+        );
+
+      if (user.estado === Estado.Deshabilitado)
+        throw new BadRequestException(
+          'The user has already asked for password reset. Wait for an admin to reset.',
+        );
+      user.estado = Estado.Deshabilitado;
+      user.observaciones =
+        '[PASSWORD]' + (user.observaciones ? '\n' + user.observaciones : '');
+
+      await this.usuariosRepository.save(user);
+      user.password = undefined;
+      return user;
+    } catch (error) {
+      console.error(error);
+      return { error };
+    }
+  }
+
+  async restorePassword(
+    id: number,
+    passDto: RestorePasswordDTO | SelfRestorePasswordDTO,
+  ) {
+    try {
+      const user = await this.usuariosRepository.findOneBy({ id });
+      if (!user)
+        throw new BadRequestException(
+          'The user with the ID provided not exists',
+        );
+
+      if (passDto instanceof SelfRestorePasswordDTO) {
+        const isPasswordValid = await bcrypt.compare(
+          passDto.oldPassword,
+          user.password,
+        );
+        if (!isPasswordValid)
+          throw new UnauthorizedException(
+            'Old password incorrect. Try again or ask for another admin restore password.',
+          );
+      }
+
+      const { password, confirmPassword } = passDto;
+
+      if (password !== confirmPassword)
+        throw new BadGatewayException("The passwords doesn't matches");
+
+      const salt = await bcrypt.genSalt(12);
+      const hashedPassword = await bcrypt.hash(password, salt);
+
+      user.password = hashedPassword;
+      if (user.estado === Estado.Deshabilitado) user.estado = Estado.Normal;
+      if (user.observaciones) {
+        user.observaciones = user.observaciones
+          .replace('[PASSWORD]', '')
+          .trim();
+      }
+
+      await this.usuariosRepository.save(user);
+      user.password = undefined;
+      return user;
+    } catch (error) {
+      console.error(error);
+      return { error };
     }
   }
 

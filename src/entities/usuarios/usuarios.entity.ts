@@ -20,6 +20,11 @@ export enum Rol {
   Administrador,
 }
 
+export enum Estado {
+  Normal,
+  Deshabilitado,
+}
+
 @Entity('usuarios')
 export class Usuario extends BaseEntity {
   @PrimaryGeneratedColumn()
@@ -81,6 +86,13 @@ export class Usuario extends BaseEntity {
     default: Rol.Vendedor,
   })
   rol: Rol;
+
+  @Column({
+    type: 'enum',
+    enum: Estado,
+    default: Estado.Normal,
+  })
+  estado: Estado;
 
   @OneToMany(() => Cliente, (cliente) => cliente.vendedorAsociado)
   clientesAsociados: Cliente[];
