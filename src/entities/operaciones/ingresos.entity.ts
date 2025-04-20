@@ -15,6 +15,12 @@ export enum FormaPago {
   Transferencia,
 }
 
+export enum EstadoIngreso {
+  Pendiente,
+  Pagado,
+  Anulado,
+}
+
 @Entity('ingresos')
 export class Ingreso extends BaseEntity {
   @PrimaryGeneratedColumn()
@@ -40,6 +46,13 @@ export class Ingreso extends BaseEntity {
     default: FormaPago.Efectivo,
   })
   formaPago: FormaPago;
+
+  @Column({
+    type: 'enum',
+    enum: EstadoIngreso,
+    default: EstadoIngreso.Pendiente,
+  })
+  estado: EstadoIngreso;
 
   @OneToOne(() => Recibo, (recibo) => recibo.ingreso, {
     cascade: true,

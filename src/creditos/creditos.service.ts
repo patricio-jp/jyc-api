@@ -15,6 +15,7 @@ import {
 } from 'src/entities/creditos/creditos.entity';
 import { Cuota, EstadoCuota } from 'src/entities/cuotas/cuotas.entity';
 import { CreateIngresoDTO } from 'src/entities/operaciones/ingresos.dto';
+import { EstadoIngreso } from 'src/entities/operaciones/ingresos.entity';
 import { EstadoOperacion } from 'src/entities/operaciones/operaciones.entity';
 import { Venta } from 'src/entities/operaciones/ventas.entity';
 import { FunctionsService } from 'src/helpers/functions/functions.service';
@@ -521,16 +522,31 @@ export class CreditosService {
         credito.venta.estado = EstadoOperacion.Pagado;
       }
 
-      // Generar recibo
+      // Generar recibo o sumar el importe a uno ya existente
       const infoRecibo: CreateIngresoDTO = {
         fecha: pago.fechaPago ? new Date(pago.fechaPago) : new Date(),
         importe: Number(pago.monto),
         formaPago: pago.formaPago,
+        estado: EstadoIngreso.Pendiente,
         concepto: 'Pago de cuota',
         cliente_id: credito.venta.cliente.id,
       };
 
+      const ingresoExistente =
+        await this.ingresosService.findPendienteByCliente(
+          credito.venta.cliente.id,
+        );
+
       await this.creditosRepository.save(credito);
+      if (ingresoExistente) {
+        ingresoExistente.importe =
+          Number(ingresoExistente.importe) + Number(pago.monto);
+        return await this.ingresosService.update(
+          ingresoExistente.id,
+          ingresoExistente,
+          true,
+        );
+      }
       return await this.ingresosService.create(infoRecibo);
     } catch (error) {
       return `Error: ${error}`;

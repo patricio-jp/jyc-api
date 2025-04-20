@@ -5,7 +5,11 @@ import {
   CreateIngresoDTO,
   UpdateIngresoDTO,
 } from 'src/entities/operaciones/ingresos.dto';
-import { FormaPago, Ingreso } from 'src/entities/operaciones/ingresos.entity';
+import {
+  EstadoIngreso,
+  FormaPago,
+  Ingreso,
+} from 'src/entities/operaciones/ingresos.entity';
 import { Recibo } from 'src/entities/recibos/recibos.entity';
 import { Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
@@ -14,6 +18,7 @@ interface IngresosFilter {
   fecha?: Date | string;
   cliente?: string;
   formaPago?: FormaPago;
+  estado?: EstadoIngreso;
   searchTerm?: string;
   mostrarEliminados?: boolean;
   counterQuery?: boolean;
@@ -34,7 +39,7 @@ export class IngresosService {
 
   async create(createIngresoDto: CreateIngresoDTO) {
     try {
-      const { cliente_id, fecha, concepto, importe, formaPago } =
+      const { cliente_id, fecha, concepto, importe, formaPago, estado } =
         createIngresoDto;
       const ingreso = new Ingreso();
 
@@ -54,6 +59,7 @@ export class IngresosService {
       ingreso.importe = importe;
       ingreso.formaPago = formaPago;
       ingreso.recibo = recibo;
+      if (estado) ingreso.estado = estado;
 
       await this.ingresosRepository.save(ingreso);
       return ingreso;
@@ -93,6 +99,12 @@ export class IngresosService {
     if (filter.formaPago) {
       query.andWhere('ingreso.formaPago = :formaPago', {
         formaPago: filter.formaPago,
+      });
+    }
+
+    if (filter.estado) {
+      query.andWhere('ingreso.estado = :estado', {
+        estado: filter.estado,
       });
     }
 
@@ -179,10 +191,66 @@ export class IngresosService {
     });
   }
 
-  update(id: number, updateIngresoDto: UpdateIngresoDTO) {
-    //const { cliente_id, fecha, concepto, importe } = updateIngresoDto;
-    console.log(updateIngresoDto);
-    return `This action updates a #${id} ingreso`;
+  async findPendienteByCliente(cliente_id: number) {
+    return await this.ingresosRepository
+      .createQueryBuilder('ingreso')
+      .leftJoin('ingreso.recibo', 'recibo')
+      .leftJoin('recibo.cliente', 'cliente')
+      .where('cliente.id = :cliente_id', { cliente_id })
+      .andWhere("ingreso.estado = ':estado'", {
+        estado: EstadoIngreso.Pendiente,
+      })
+      .withDeleted()
+      .getOne();
+  }
+
+  async update(
+    id: number,
+    updateIngresoDto: UpdateIngresoDTO,
+    _bypassImporte = false,
+  ) {
+    try {
+      const ingreso = await this.ingresosRepository.findOne({
+        where: { id },
+        relations: {
+          recibo: {
+            cliente: true,
+          },
+        },
+        withDeleted: true,
+      });
+      if (!ingreso) return 'No existe el ingreso con el ID ingresado';
+
+      const { cliente_id, fecha, concepto, importe, formaPago, estado } =
+        updateIngresoDto;
+
+      let requiereNuevo: boolean = false;
+
+      if (cliente_id && cliente_id !== ingreso.recibo.cliente.id)
+        requiereNuevo = true;
+
+      if (!_bypassImporte && importe && importe !== Number(ingreso.importe))
+        requiereNuevo = true;
+
+      if (requiereNuevo) {
+        ingreso.estado = EstadoIngreso.Anulado;
+        await ingreso.save();
+        await ingreso.softRemove();
+        return this.create(updateIngresoDto as CreateIngresoDTO);
+      } else {
+        ingreso.fecha = fecha;
+        ingreso.concepto = concepto;
+        ingreso.importe = importe;
+        ingreso.formaPago = formaPago;
+        ingreso.estado = estado;
+
+        await this.ingresosRepository.save(ingreso);
+        return ingreso;
+      }
+    } catch (error) {
+      console.error(error);
+      return `Error: ${error}`;
+    }
   }
 
   async softRemove(id: number) {

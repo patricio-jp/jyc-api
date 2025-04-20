@@ -1,13 +1,14 @@
 import { ApiProperty, PartialType } from '@nestjs/swagger';
 import {
-  IsDecimal,
   IsEnum,
   IsInt,
   IsISO8601,
+  IsNumber,
+  IsOptional,
   IsString,
   Min,
 } from 'class-validator';
-import { FormaPago } from './ingresos.entity';
+import { EstadoIngreso, FormaPago } from './ingresos.entity';
 
 export class CreateIngresoDTO {
   @IsISO8601()
@@ -18,9 +19,7 @@ export class CreateIngresoDTO {
   @ApiProperty()
   concepto: string;
 
-  @IsDecimal({
-    decimal_digits: '0,2',
-  })
+  @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0.01)
   @ApiProperty()
   importe: number;
@@ -28,6 +27,11 @@ export class CreateIngresoDTO {
   @IsEnum(FormaPago)
   @ApiProperty()
   formaPago: FormaPago;
+
+  @IsOptional()
+  @IsEnum(EstadoIngreso)
+  @ApiProperty()
+  estado?: EstadoIngreso;
 
   @IsInt()
   @ApiProperty()
