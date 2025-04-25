@@ -2,7 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { LoginDTO } from 'src/entities/usuarios/usuarios.dto';
-import { Usuario } from 'src/entities/usuarios/usuarios.entity';
+import { EstadoUsuario, Usuario } from 'src/entities/usuarios/usuarios.entity';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 
@@ -21,12 +21,16 @@ export class AuthService {
     const user = await this.usuariosRepository.findOneBy({ dni });
 
     if (!user) {
-      throw new UnauthorizedException();
+      throw new UnauthorizedException('Usuario inexistente');
+    }
+
+    if (user.estado === EstadoUsuario.Deshabilitado) {
+      throw new UnauthorizedException('Usuario deshabilitado');
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      throw new UnauthorizedException();
+      throw new UnauthorizedException('Contraseña incorrecta');
     }
 
     const payload = {

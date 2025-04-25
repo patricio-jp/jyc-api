@@ -11,7 +11,7 @@ import {
   ValidateIf,
   ValidateNested,
 } from 'class-validator';
-import { Estado, Rol } from './usuarios.entity';
+import { EstadoUsuario, Rol } from './usuarios.entity';
 import { CreateDomicilioDTO } from '../domicilios/domicilios.dto';
 import { CreateTelefonoDTO } from '../telefonos/telefonos.dto';
 
@@ -64,9 +64,9 @@ export class CreateUsuarioDTO {
   rol: Rol;
 
   @IsOptional()
-  @IsEnum(Estado)
+  @IsEnum(EstadoUsuario)
   @ApiProperty()
-  estado?: Estado;
+  estado?: EstadoUsuario;
 
   @IsOptional()
   @IsDecimal({ decimal_digits: '0,2' })
@@ -89,6 +89,12 @@ export class LoginDTO {
   @IsString()
   @ApiProperty()
   password: string;
+}
+
+export class AskPasswordResetDTO {
+  @IsInt()
+  @ApiProperty()
+  dni: number;
 }
 
 export class RestorePasswordDTO {

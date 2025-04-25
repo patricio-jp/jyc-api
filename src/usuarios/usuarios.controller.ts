@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { UsuariosService } from './usuarios.service';
 import {
+  AskPasswordResetDTO,
   CreateUsuarioDTO,
   RestorePasswordDTO,
   SelfRestorePasswordDTO,
@@ -31,8 +32,7 @@ export class UsuariosController {
   constructor(private readonly usuariosService: UsuariosService) {}
 
   @Post()
-  //@Roles(Rol.Administrador, Rol.Supervisor)
-  @SkipAuth() // TO-DO DELETE SkipAuth to protect endpoint
+  @Roles(Rol.Administrador, Rol.Supervisor)
   async create(@Body() createUsuarioDto: CreateUsuarioDTO) {
     return this.usuariosService.create(createUsuarioDto);
   }
@@ -61,6 +61,12 @@ export class UsuariosController {
     @Body() updateUsuarioDto: UpdateUsuarioDTO,
   ) {
     return this.usuariosService.update(+id, updateUsuarioDto);
+  }
+
+  @Post('/restorePassword')
+  @SkipAuth()
+  async askForPasswordReset(@Body() passDto: AskPasswordResetDTO) {
+    return this.usuariosService.userAskForPasswordReset(passDto);
   }
 
   @Patch(':id/restorePassword')
