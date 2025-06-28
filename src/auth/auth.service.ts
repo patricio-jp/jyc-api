@@ -18,7 +18,10 @@ export class AuthService {
     usuario: LoginDTO,
   ): Promise<{ access_token: string; refresh_token: string }> {
     const { dni, password } = usuario;
-    const user = await this.usuariosRepository.findOneBy({ dni });
+    const user = await this.usuariosRepository.findOne({
+      where: { dni },
+      select: ['id', 'password', 'estado', 'rol'],
+    });
 
     if (!user) {
       throw new UnauthorizedException('Usuario inexistente');

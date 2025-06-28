@@ -1,28 +1,20 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   CreateClienteDTO,
   UpdateClienteDTO,
 } from 'src/entities/clientes/clientes.dto';
 import { Repository } from 'typeorm';
 import { Cliente, EstadoCliente } from 'src/entities/clientes/clientes.entity';
-import {
-  CreateDomicilioDTO,
-  UpdateDomicilioDTO,
-} from 'src/entities/domicilios/domicilios.dto';
-import {
-  Domicilio,
-  DomicilioCliente,
-} from 'src/entities/domicilios/domicilios.entity';
-import {
-  CreateTelefonoDTO,
-  UpdateTelefonoDTO,
-} from 'src/entities/telefonos/telefonos.dto';
-import {
-  Telefono,
-  TelefonoCliente,
-} from 'src/entities/telefonos/telefonos.entity';
+import { DomicilioCliente } from 'src/entities/domicilios/domicilios.entity';
+import { TelefonoCliente } from 'src/entities/telefonos/telefonos.entity';
 import { Usuario } from 'src/entities/usuarios/usuarios.entity';
 import { InjectRepository } from '@nestjs/typeorm';
+import { DomiciliosService } from 'src/shared/services/domicilios.service';
+import { TelefonosService } from 'src/shared/services/telefonos.service';
 
 interface ClientesFilter {
   counterQuery?: boolean;
@@ -43,81 +35,73 @@ export class ClientesService {
     private clientesRepository: Repository<Cliente>,
     @InjectRepository(Usuario)
     private usuariosRepository: Repository<Usuario>,
+    private domiciliosService: DomiciliosService,
+    private telefonosService: TelefonosService,
   ) {}
 
   async create(createClienteDto: CreateClienteDTO) {
-    try {
-      const {
-        nombre,
-        apellido,
-        dni,
-        fechaNacimiento,
+    const {
+      dni,
+      fechaNacimiento,
+      domicilios,
+      telefonos,
+      id_vendedorAsociado,
+      vendedorAsociadoHasta,
+      id_cobradorAsociado,
+      saldo,
+      estado,
+    } = createClienteDto;
+
+    const existent = await this.clientesRepository.findOneBy({
+      dni,
+    });
+    if (existent) {
+      throw new BadRequestException(
+        'El DNI ingresado no es válido o ya existe un cliente con ese DNI',
+      );
+    }
+
+    const nuevoCliente = this.clientesRepository.create(createClienteDto);
+    nuevoCliente.fechaNacimiento = fechaNacimiento
+      ? new Date(fechaNacimiento.valueOf())
+      : null;
+    nuevoCliente.saldo = saldo ? saldo : 0;
+    nuevoCliente.estado = estado ? estado : EstadoCliente.AConfirmar;
+
+    await nuevoCliente.save();
+
+    if (domicilios) {
+      nuevoCliente.domicilios = await this.domiciliosService.createDomicilios(
         domicilios,
+        'cliente',
+      );
+    }
+
+    if (telefonos) {
+      nuevoCliente.telefonos = await this.telefonosService.createTelefonos(
         telefonos,
-        id_vendedorAsociado,
-        vendedorAsociadoHasta,
-        id_cobradorAsociado,
-        saldo,
-        observaciones,
-        estado,
-      } = createClienteDto;
+        'cliente',
+      );
+    }
 
-      const existent = await this.clientesRepository.findOneBy({
-        dni,
+    if (id_vendedorAsociado) {
+      const vendedorAsociado = await this.usuariosRepository.findOneBy({
+        id: id_vendedorAsociado,
       });
-      if (existent) return 'Ya existe un cliente con el DNI ingresado';
-
-      const nuevoCliente = new Cliente();
-      nuevoCliente.nombre = nombre;
-      nuevoCliente.apellido = apellido;
-      nuevoCliente.dni = dni;
-      nuevoCliente.fechaNacimiento = new Date(fechaNacimiento.valueOf());
-      nuevoCliente.saldo = saldo ? saldo : 0;
-      nuevoCliente.observaciones = observaciones;
-      nuevoCliente.estado = estado ? estado : EstadoCliente.AConfirmar;
-
-      await nuevoCliente.save();
-
-      if (domicilios) {
-        const nuevosDomicilios = await Promise.all(
-          domicilios.map(async (domicilio: CreateDomicilioDTO) => {
-            const nuevoDom = new DomicilioCliente();
-            nuevoDom.direccion = domicilio.direccion;
-            nuevoDom.barrio = domicilio.barrio;
-            nuevoDom.localidad = domicilio.localidad;
-
-            return nuevoDom;
-          }),
-        );
-        nuevoCliente.domicilios = nuevosDomicilios;
-      }
-
-      if (telefonos) {
-        const nuevosTelefonos = await Promise.all(
-          telefonos.map(async (telefono: CreateTelefonoDTO) => {
-            const nuevoTel = new TelefonoCliente();
-            nuevoTel.telefono = telefono.telefono;
-
-            return nuevoTel;
-          }),
-        );
-        nuevoCliente.telefonos = nuevosTelefonos;
-      }
-
-      if (id_vendedorAsociado) {
-        nuevoCliente.id_vendedorAsociado = id_vendedorAsociado;
+      if (vendedorAsociado) {
+        nuevoCliente.vendedorAsociado = vendedorAsociado;
         nuevoCliente.vendedorAsociadoHasta = vendedorAsociadoHasta;
       }
-
-      if (id_cobradorAsociado) {
-        nuevoCliente.id_cobradorAsociado = id_cobradorAsociado;
-      }
-
-      return await this.clientesRepository.save(nuevoCliente);
-    } catch (error) {
-      console.error(error);
-      return `Error: ${error}`;
     }
+
+    if (id_cobradorAsociado) {
+      const cobradorAsociado = await this.usuariosRepository.findOneBy({
+        id: id_cobradorAsociado,
+      });
+      if (cobradorAsociado) nuevoCliente.cobradorAsociado = cobradorAsociado;
+    }
+
+    return await this.clientesRepository.save(nuevoCliente);
   }
 
   async findAll(
@@ -210,7 +194,7 @@ export class ClientesService {
   }
 
   async findOne(id: number) {
-    return await this.clientesRepository.findOne({
+    const client = await this.clientesRepository.findOne({
       where: {
         id,
       },
@@ -229,133 +213,72 @@ export class ClientesService {
       },
       withDeleted: true,
     });
+
+    if (!client) throw new NotFoundException('Cliente no encontrado');
+    return client;
   }
 
   async update(id: number, updateClienteDto: UpdateClienteDTO) {
-    try {
-      const cliente = await this.clientesRepository.findOneBy({ id });
+    const cliente = await this.clientesRepository.findOne({
+      where: { id },
+      relations: {
+        domicilios: true,
+        telefonos: true,
+        vendedorAsociado: true,
+        cobradorAsociado: true,
+      },
+      withDeleted: true,
+    });
 
-      if (!cliente) return 'No existe el cliente con el ID ingresado';
+    if (!cliente)
+      throw new NotFoundException('No existe el cliente con el ID ingresado');
 
-      const {
-        nombre,
-        apellido,
-        dni,
-        fechaNacimiento,
+    const {
+      domicilios,
+      telefonos,
+      id_vendedorAsociado,
+      vendedorAsociadoHasta,
+      id_cobradorAsociado,
+    } = updateClienteDto;
+
+    if (domicilios) {
+      cliente.domicilios = await this.domiciliosService.updateDomicilios(
+        (cliente.domicilios as DomicilioCliente[]) || [],
         domicilios,
+        'cliente',
+      );
+    }
+
+    if (telefonos) {
+      cliente.telefonos = await this.telefonosService.updateTelefonos(
+        (cliente.telefonos as TelefonoCliente[]) || [],
         telefonos,
-        id_vendedorAsociado,
-        vendedorAsociadoHasta,
-        id_cobradorAsociado,
-        saldo,
-        observaciones,
-        estado,
-      } = updateClienteDto;
+        'cliente',
+      );
+    }
 
-      if (nombre) cliente.nombre = nombre;
-      cliente.apellido = apellido;
-      if (dni) cliente.dni = dni;
-      if (fechaNacimiento)
-        cliente.fechaNacimiento = new Date(fechaNacimiento.valueOf());
-      if (saldo) cliente.saldo = saldo;
-      cliente.observaciones = observaciones;
-      if (estado) cliente.estado = estado;
-
-      if (domicilios) {
-        const existingDomicilios = cliente.domicilios || [];
-        let domiciliosToRemove: Domicilio[];
-        if (domicilios.length === 0) {
-          domiciliosToRemove = existingDomicilios;
-        } else {
-          domiciliosToRemove = existingDomicilios.filter(
-            (existingDomicilio) =>
-              !domicilios.some(
-                (domicilio) =>
-                  'id' in domicilio && domicilio.id === existingDomicilio.id,
-              ),
-          );
-        }
-        await Promise.all(
-          domiciliosToRemove.map((domicilio) => domicilio.remove()),
-        );
-        const updatedDomicilios = await Promise.all(
-          domicilios.map(
-            async (domicilio: UpdateDomicilioDTO | CreateDomicilioDTO) => {
-              if ('id' in domicilio && domicilio.id) {
-                const existingDomicilio = existingDomicilios.find(
-                  (dom) => dom.id === domicilio.id,
-                );
-                if (existingDomicilio) {
-                  existingDomicilio.direccion = domicilio.direccion;
-                  existingDomicilio.barrio = domicilio.barrio;
-                  existingDomicilio.localidad = domicilio.localidad;
-                  return existingDomicilio;
-                }
-              } else {
-                const nuevoDom = new DomicilioCliente();
-                nuevoDom.direccion = domicilio.direccion;
-                nuevoDom.barrio = domicilio.barrio;
-                nuevoDom.localidad = domicilio.localidad;
-                return nuevoDom;
-              }
-            },
-          ),
-        );
-        cliente.domicilios = updatedDomicilios;
-      }
-
-      if (telefonos) {
-        const existingTelefonos = cliente.telefonos || [];
-        let telefonosToRemove: Telefono[];
-        if (telefonos.length === 0) {
-          telefonosToRemove = existingTelefonos;
-        } else {
-          telefonosToRemove = existingTelefonos.filter(
-            (existingTel) =>
-              !telefonos.some(
-                (telefono) =>
-                  'id' in telefono && telefono.id === existingTel.id,
-              ),
-          );
-        }
-        await Promise.all(
-          telefonosToRemove.map((telefono) => telefono.remove()),
-        );
-        const updatedTelefonos = await Promise.all(
-          telefonos.map(
-            async (telefono: CreateTelefonoDTO | UpdateTelefonoDTO) => {
-              if ('id' in telefono && telefono.id) {
-                const existingTel = existingTelefonos.find(
-                  (tel) => tel.id === telefono.id,
-                );
-                if (existingTel) {
-                  existingTel.telefono = telefono.telefono;
-                  return existingTel;
-                }
-              } else {
-                const nuevoTel = new TelefonoCliente();
-                nuevoTel.telefono = telefono.telefono;
-                return nuevoTel;
-              }
-            },
-          ),
-        );
-        cliente.telefonos = updatedTelefonos;
-      }
-
-      if (id_vendedorAsociado) {
-        cliente.id_vendedorAsociado = id_vendedorAsociado;
+    if (id_vendedorAsociado) {
+      const vendedorAsociado = await this.usuariosRepository.findOneBy({
+        id: id_vendedorAsociado,
+      });
+      if (vendedorAsociado) {
+        cliente.vendedorAsociado = vendedorAsociado;
         cliente.vendedorAsociadoHasta = vendedorAsociadoHasta;
       }
-
-      if (id_cobradorAsociado) {
-        cliente.id_cobradorAsociado = id_cobradorAsociado;
-      }
-
-      return await this.clientesRepository.save(cliente);
-    } catch (error) {
-      return `Error: ${error}`;
     }
+
+    if (id_cobradorAsociado) {
+      const cobradorAsociado = await this.usuariosRepository.findOneBy({
+        id: id_cobradorAsociado,
+      });
+      if (cobradorAsociado) cliente.cobradorAsociado = cobradorAsociado;
+    }
+
+    // Elimina domicilios y telefonos del DTO antes del merge
+    const { domicilios: _, telefonos: __, ...restDto } = updateClienteDto;
+    this.clientesRepository.merge(cliente, restDto);
+
+    return await this.clientesRepository.save(cliente);
   }
 
   async softRemove(id: number) {

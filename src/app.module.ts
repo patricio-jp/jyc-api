@@ -17,6 +17,7 @@ import { LoggingInterceptor } from './helpers/interceptors/logger.interceptor';
 import { FileController } from './helpers/controllers/files.controller';
 import { CartonesModule } from './cartones/cartones.module';
 import { IngresosModule } from './ingresos/ingresos.module';
+import { SharedModule } from './shared/shared.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { IngresosModule } from './ingresos/ingresos.module';
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, 'uploads'),
     }),
+    SharedModule,
     ClientesModule,
     UsuariosModule,
     VentasModule,

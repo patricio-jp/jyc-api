@@ -40,7 +40,7 @@ export class Usuario extends BaseEntity {
   @Column()
   apellido: string;
 
-  @Column()
+  @Column({ select: false })
   password: string;
 
   @Column('date')

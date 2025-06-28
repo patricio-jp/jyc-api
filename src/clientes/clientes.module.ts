@@ -6,6 +6,7 @@ import { Cliente } from 'src/entities/clientes/clientes.entity';
 import { Usuario } from 'src/entities/usuarios/usuarios.entity';
 import { DomicilioCliente } from 'src/entities/domicilios/domicilios.entity';
 import { TelefonoCliente } from 'src/entities/telefonos/telefonos.entity';
+import { SharedModule } from 'src/shared/shared.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { TelefonoCliente } from 'src/entities/telefonos/telefonos.entity';
       DomicilioCliente,
       TelefonoCliente,
     ]),
+    SharedModule,
   ],
   controllers: [ClientesController],
   providers: [ClientesService],
