@@ -115,6 +115,7 @@ export class ClientesService {
       query.leftJoinAndSelect('cliente.telefonos', 'telefonos');
       query.leftJoinAndSelect('cliente.ventas', 'ventas');
       query.leftJoinAndSelect('ventas.financiacion', 'creditos');
+      query.leftJoinAndSelect('creditos.carton', 'carton');
       query.leftJoinAndSelect('cliente.zona', 'zona');
       if (limit > 0 && page > 0) query.skip((page - 1) * limit).take(limit);
     } else {
@@ -188,6 +189,28 @@ export class ClientesService {
         count += Number(element.count);
       });
       return [data, count];
+    }
+
+    return await query.getManyAndCount();
+  }
+
+  async findAllByCartonGroup(
+    groupId: number,
+    page: number,
+    limit: number,
+  ): Promise<[Cliente[], number]> {
+    const query = this.clientesRepository
+      .createQueryBuilder('cliente')
+      .leftJoinAndSelect('cliente.domicilios', 'domicilios')
+      .leftJoinAndSelect('cliente.telefonos', 'telefonos')
+      .leftJoinAndSelect('cliente.ventas', 'ventas')
+      .leftJoinAndSelect('ventas.financiacion', 'creditos')
+      .leftJoinAndSelect('creditos.carton', 'carton')
+      .leftJoinAndSelect('carton.grupoCartones', 'grupoCartones')
+      .where('grupoCartones.id = :groupId', { groupId });
+
+    if (limit > 0 && page > 0) {
+      query.skip((page - 1) * limit).take(limit);
     }
 
     return await query.getManyAndCount();

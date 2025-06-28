@@ -41,6 +41,20 @@ export class ClientesController {
     return { data, count };
   }
 
+  @Get('/grupo/:grupoId')
+  async findAllByCartonGroup(
+    @Param('grupoId') grupoId: string,
+    @Req() req: Request,
+  ) {
+    const { page = 1, pageSize = 10 } = req.query;
+    const [data, count] = await this.clientesService.findAllByCartonGroup(
+      Number(grupoId),
+      Number(page),
+      Number(pageSize),
+    );
+    return { data, count };
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return this.clientesService.findOne(+id);
