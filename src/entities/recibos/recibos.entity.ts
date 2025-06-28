@@ -6,6 +6,7 @@ import {
   Entity,
   ManyToOne,
   PrimaryGeneratedColumn,
+  RelationId,
   UpdateDateColumn,
 } from 'typeorm';
 import { Ingreso } from '../operaciones/ingresos.entity';
@@ -27,10 +28,16 @@ export class Recibo extends BaseEntity {
   })
   cliente: Cliente;
 
+  @RelationId((recibo: Recibo) => recibo.cliente)
+  id_cliente: number;
+
   @ManyToOne(() => Ingreso, (ingreso) => ingreso.recibo, {
     eager: true,
   })
   ingreso: Ingreso;
+
+  @RelationId((recibo: Recibo) => recibo.ingreso)
+  id_ingreso: number;
 
   @CreateDateColumn()
   createdAt: Date;

@@ -26,7 +26,7 @@ export class Venta extends Operacion {
   cliente: Cliente;
 
   @RelationId((venta: Venta) => venta.cliente)
-  clienteId: number;
+  id_cliente: number;
 
   @OneToMany(() => Credito, (credito) => credito.venta, {
     eager: true,

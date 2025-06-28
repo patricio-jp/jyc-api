@@ -6,6 +6,7 @@ import {
   Entity,
   ManyToOne,
   PrimaryGeneratedColumn,
+  RelationId,
   UpdateDateColumn,
 } from 'typeorm';
 import { Credito } from '../creditos/creditos.entity';
@@ -38,10 +39,16 @@ export class Carton extends BaseEntity {
   @ManyToOne(() => Credito, (credito) => credito.carton)
   credito: Credito;
 
+  @RelationId((carton: Carton) => carton.credito)
+  id_credito: number;
+
   @ManyToOne(() => GrupoCartones, (grupoCartones) => grupoCartones.cartones, {
     cascade: true,
   })
   grupoCartones: GrupoCartones;
+
+  @RelationId((carton: Carton) => carton.grupoCartones)
+  id_grupoCartones: number;
 
   @CreateDateColumn()
   createdAt: Date;
