@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Cliente } from 'src/entities/clientes/clientes.entity';
-import { EstadoCredito } from 'src/entities/creditos/creditos.entity';
+import { EstadoCredito, Periodo } from 'src/entities/creditos/creditos.entity';
 
 @Injectable()
 export class ReportesService {
@@ -117,6 +117,97 @@ export class ReportesService {
       const grupoA = a.creditos[0]?.grupoCartones?.id || 0;
       const grupoB = b.creditos[0]?.grupoCartones?.id || 0;
       return grupoA - grupoB;
+    });
+
+    return resultado;
+  }
+
+  /**
+   * Devuelve los créditos semanales para una semana dada, agrupados por día de la semana.
+   * @param fechaInicioSemana Fecha de inicio de la semana (inclusive)
+   * @param fechaFinSemana Fecha de fin de la semana (inclusive)
+   * @returns Un objeto con los días de la semana como claves y arrays de créditos como valores
+   */
+  async getCreditosSemanalesPorDia(
+    fechaInicioSemana: Date,
+    fechaFinSemana: Date,
+  ) {
+    const clientes = await this.clientesRepository.find({
+      relations: {
+        domicilios: true,
+        telefonos: true,
+        ventas: {
+          financiacion: {
+            cuotas: true,
+            carton: true,
+          },
+        },
+      },
+    });
+
+    // Utilidad para obtener el nombre del día en español
+    const diasSemana = [
+      'Domingo',
+      'Lunes',
+      'Martes',
+      'Miércoles',
+      'Jueves',
+      'Viernes',
+      'Sábado',
+    ];
+
+    // Agrupar créditos por día de la semana
+    const resultado: Record<string, any[]> = {
+      Lunes: [],
+      Martes: [],
+      Miércoles: [],
+      Jueves: [],
+      Viernes: [],
+      Sábado: [],
+      Domingo: [],
+    };
+
+    clientes.forEach((cliente: any) => {
+      (cliente.ventas || []).forEach((venta: any) => {
+        const financiacion = venta.financiacion.filter(
+          (f: any) =>
+            f.estado !== EstadoCredito.Anulado &&
+            f.estado !== EstadoCredito.Pagado,
+        )[0];
+        if (!financiacion || financiacion.periodo !== Periodo.Semanal) return;
+        (financiacion.cuotas || []).forEach((cuota: any, idx: number) => {
+          const fechaVenc = new Date(cuota.fechaVencimiento);
+          if (fechaVenc >= fechaInicioSemana && fechaVenc <= fechaFinSemana) {
+            const dia = diasSemana[fechaVenc.getDay()];
+            resultado[dia].push({
+              cliente: {
+                id: cliente.id,
+                nombre: cliente.nombre,
+                apellido: cliente.apellido,
+                telefonos: (cliente.telefonos || []).map(
+                  (t: any) => t.telefono,
+                ),
+                domicilios: (cliente.domicilios || []).map((d: any) => ({
+                  direccion: d.direccion,
+                  barrio: d.barrio,
+                  localidad: d.localidad,
+                })),
+              },
+              credito: {
+                id: financiacion.id,
+                fechaInicio: financiacion.fechaInicio,
+                cantidadCuotas: financiacion.cantidadCuotas,
+                montoCuota: Number(financiacion.montoCuota || 0),
+                comprobante: venta.comprobante,
+              },
+              cuota: {
+                numero: idx + 1,
+                fechaVencimiento: cuota.fechaVencimiento,
+              },
+            });
+          }
+        });
+      });
     });
 
     return resultado;

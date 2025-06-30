@@ -12,6 +12,7 @@ import {
 } from 'src/entities/telefonos/telefonos.entity';
 import { ReportesService } from './services/reportes.service';
 import { Cliente } from 'src/entities/clientes/clientes.entity';
+import { ReportesController } from './services/reportes.controller';
 
 @Module({
   imports: [
@@ -23,7 +24,7 @@ import { Cliente } from 'src/entities/clientes/clientes.entity';
       Cliente,
     ]),
   ],
-  controllers: [],
+  controllers: [ReportesController],
   providers: [DomiciliosService, TelefonosService, ReportesService],
   exports: [DomiciliosService, TelefonosService, ReportesService],
 })
