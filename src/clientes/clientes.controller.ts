@@ -18,11 +18,15 @@ import { ApiTags } from '@nestjs/swagger';
 import { Roles } from 'src/helpers/roleDetector';
 import { Rol } from 'src/entities/usuarios/usuarios.entity';
 import { Request } from 'express';
+import { ReportesService } from 'src/shared/services/reportes.service';
 
 @ApiTags('Clientes')
 @Controller('clientes')
 export class ClientesController {
-  constructor(private readonly clientesService: ClientesService) {}
+  constructor(
+    private readonly clientesService: ClientesService,
+    private readonly reportesService: ReportesService,
+  ) {}
 
   @Post()
   @Roles(Rol.Administrador, Rol.Supervisor)
@@ -53,6 +57,15 @@ export class ClientesController {
       Number(pageSize),
     );
     return { data, count };
+  }
+
+  @Get('/planilla/mensual')
+  async getPlanillaMensual(@Req() req: Request) {
+    const { month, year } = req.query;
+    return this.reportesService.getClientesConCreditosActivosOrdenados(
+      +month,
+      +year,
+    );
   }
 
   @Get(':id')

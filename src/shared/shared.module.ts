@@ -10,6 +10,8 @@ import {
   TelefonoCliente,
   TelefonoUsuario,
 } from 'src/entities/telefonos/telefonos.entity';
+import { ReportesService } from './services/reportes.service';
+import { Cliente } from 'src/entities/clientes/clientes.entity';
 
 @Module({
   imports: [
@@ -18,10 +20,11 @@ import {
       DomicilioUsuario,
       TelefonoCliente,
       TelefonoUsuario,
+      Cliente,
     ]),
   ],
   controllers: [],
-  providers: [DomiciliosService, TelefonosService],
-  exports: [DomiciliosService, TelefonosService],
+  providers: [DomiciliosService, TelefonosService, ReportesService],
+  exports: [DomiciliosService, TelefonosService, ReportesService],
 })
 export class SharedModule {}
