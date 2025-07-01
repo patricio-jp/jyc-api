@@ -24,10 +24,12 @@ export class WinstonLogger implements LoggerService {
   private readonly logger: winston.Logger;
 
   constructor() {
-    const logDir = path.join(process.env.LOGS_FOLDER);
+    // Asegura valor por defecto para la carpeta de logs
+    const logDir = path.join(process.env.LOGS_FOLDER || 'logs');
 
+    // Crea el directorio de logs de forma recursiva si no existe
     if (!fs.existsSync(logDir)) {
-      fs.mkdirSync(logDir);
+      fs.mkdirSync(logDir, { recursive: true });
     }
 
     this.logger = winston.createLogger({
@@ -50,17 +52,25 @@ export class WinstonLogger implements LoggerService {
     });
 
     if (process.env.NODE_ENV !== 'production') {
-      // APP_ENV is accessed from env file
       this.logger.add(new winston.transports.Console());
     }
   }
 
+  // Corrige la firma y uso de log para winston v4+
   log(message: any, ...optionalParams: any[]) {
-    this.logger.log(message, optionalParams);
+    if (optionalParams && optionalParams.length > 0) {
+      this.logger.info(message, ...optionalParams);
+    } else {
+      this.logger.info(message);
+    }
   }
 
   error(message: string, trace?: string) {
-    this.logger.error(`${message} - ${trace}`);
+    if (trace) {
+      this.logger.error(`${message} - ${trace}`);
+    } else {
+      this.logger.error(message);
+    }
   }
 
   warn(message: string) {
@@ -77,7 +87,7 @@ export class WinstonLogger implements LoggerService {
 
   logPetition(logInfo: LogPetition) {
     let message = '';
-    if (Object.keys(logInfo.body).length !== 0) {
+    if (logInfo.body && Object.keys(logInfo.body).length !== 0) {
       message = `[${logInfo.method}] ${logInfo.route} | ${logInfo.statusCode}  made from ${logInfo.ip} - User: ${logInfo.user} - Req.Body: ${JSON.stringify(logInfo.body)}`;
       if (logInfo.file) {
         message += ` - ${logInfo.file}`;
@@ -90,7 +100,7 @@ export class WinstonLogger implements LoggerService {
 
   logError(logInfo: LogError) {
     let message = '';
-    if (Object.keys(logInfo.body).length !== 0) {
+    if (logInfo.body && Object.keys(logInfo.body).length !== 0) {
       message = `[${logInfo.method}] ${logInfo.route} | ${logInfo.statusCode}  made from ${logInfo.ip} - User: ${logInfo.user} - Req.Body: ${JSON.stringify(logInfo.body)} - Error: ${logInfo.error}`;
       if (logInfo.file) {
         message += ` - ${logInfo.file}`;
