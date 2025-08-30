@@ -8,12 +8,14 @@ import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import { IS_PUBLIC_KEY } from 'src/helpers/allowPublicAccess';
+import { ApiKeysService } from './api-keys.service';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(
     private jwtService: JwtService,
     private reflector: Reflector,
+    private apiKeysService: ApiKeysService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -26,6 +28,21 @@ export class AuthGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest();
+
+    // First: check for x-api-key header
+    const apiKeyHeader = this.extractApiKeyFromHeader(request);
+    if (apiKeyHeader) {
+      try {
+        const apiKeyInfo =
+          await this.apiKeysService.validateApiKey(apiKeyHeader);
+        request['user'] = { apiKey: true, ...apiKeyInfo };
+        return true;
+      } catch (e) {
+        throw new UnauthorizedException();
+      }
+    }
+
+    // Fallback to Bearer JWT
     const token = this.extractTokenFromHeader(request);
     if (!token) {
       throw new UnauthorizedException();
@@ -34,8 +51,6 @@ export class AuthGuard implements CanActivate {
       const payload = await this.jwtService.verifyAsync(token, {
         secret: process.env.HASH_PASSWORD,
       });
-      // 💡 We're assigning the payload to the request object here
-      // so that we can access it in our route handlers
       request['user'] = payload;
     } catch {
       throw new UnauthorizedException();
@@ -46,5 +61,14 @@ export class AuthGuard implements CanActivate {
   private extractTokenFromHeader(request: Request): string | undefined {
     const [type, token] = request.headers.authorization?.split(' ') ?? [];
     return type === 'Bearer' ? token : undefined;
+  }
+
+  private extractApiKeyFromHeader(request: Request): string | undefined {
+    // Support both x-api-key and X-API-KEY
+    const header =
+      request.headers['x-api-key'] ||
+      request.headers['x-api-key'.toLowerCase()];
+    if (!header) return undefined;
+    return Array.isArray(header) ? header[0] : header;
   }
 }
